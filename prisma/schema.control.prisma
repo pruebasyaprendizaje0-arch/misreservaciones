@@ -1,0 +1,161 @@
+// Control Plane schema
+// Stores platform users, tenants, subscriptions. Single shared DB.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/control"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_CONTROL")
+}
+
+enum UserRole {
+  PLATFORM_ADMIN
+  OWNER
+  STAFF
+  CUSTOMER
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum TenantPlan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(OWNER)
+  locale        String    @default("es")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  ownedTenants    Tenant[]   @relation("TenantOwner")
+  staffMemberships StaffMember[]
+  auditLogs       AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  name        String
+  industry    String
+  dbUrl       String       // postgresql://user:pass@host:port/mr_tenant_<slug>
+  status      TenantStatus @default(ACTIVE)
+  plan        TenantPlan   @default(FREE)
+  ownerId     String
+  owner       User         @relation("TenantOwner", fields: [ownerId], references: [id])
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Location fields for Ecuador directory
+  provincia   String?
+  canton      String?
+  parroquia   String?
+  address     String?
+  lat         Float?
+  lng         Float?
+
+  // Public profile fields
+  phone       String?
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+
+  subscriptions Subscription[]
+  staff         StaffMember[]
+
+  @@index([status])
+  @@index([provincia])
+  @@index([canton])
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan             TenantPlan
+  status           String   // active, trialing, canceled, past_due
+  currentPeriodEnd DateTime
+  externalId       String?  // Stripe subscription id
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model StaffMember {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "manager" | "receptionist" | "staff"
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}

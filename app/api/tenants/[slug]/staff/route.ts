@@ -1,0 +1,51 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { z } from 'zod';
+import { auth } from '@/lib/auth';
+import { prismaControl } from '@/lib/db/control';
+import { getTenantClient } from '@/lib/db/tenant';
+
+const createSchema = z.object({
+  name: z.string().min(2).max(120),
+  role: z.string().max(80).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().max(30).optional().nullable(),
+});
+
+async function resolveOwnerDb(slug: string) {
+  const session = await auth();
+  if (!session?.user) return { error: 'UNAUTHORIZED' as const };
+  const userId = (session.user as { id: string }).id;
+  const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
+  if (!tenant) return { error: 'NOT_FOUND' as const };
+  const isOwner = tenant.ownerId === userId;
+  const isAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
+  if (!isOwner && !isAdmin) return { error: 'FORBIDDEN' as const };
+  return { db: getTenantClient(tenant.dbUrl) };
+}
+
+function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
+  const status = err === 'UNAUTHORIZED' ? 401 : err === 'FORBIDDEN' ? 403 : 404;
+  return NextResponse.json({ error: err }, { status });
+}
+
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const { slug } = await ctx.params;
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) return errorResponse(owner.error);
+  const staff = await owner.db.staff.findMany({ orderBy: { name: 'asc' } });
+  return NextResponse.json({ staff });
+}
+
+export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const { slug } = await ctx.params;
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) return errorResponse(owner.error);
+
+  const json = await req.json().catch(() => null);
+  const parsed = createSchema.safeParse(json);
+  if (!parsed.success)
+    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
+
+  const member = await owner.db.staff.create({ data: parsed.data });
+  return NextResponse.json({ member }, { status: 201 });
+}

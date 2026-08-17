@@ -1,0 +1,202 @@
+// Tenant schema (template)
+// Each tenant gets its own database. Run `prisma migrate deploy` against
+// the new DB during provisioning.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/tenant"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Industry {
+  HOSTAL
+  MASAJE
+  PELUQUERIA
+  MEDICO
+}
+
+enum ResourceType {
+  HABITACION
+  MESA
+  ASIENTO
+  CONSULTORIO
+  SILLA
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+  CANCELLED
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  industry    Industry
+  name        String
+  description String?
+  durationMin Int
+  priceCents  Int      @default(0)
+  currency    String   @default("USD")
+  capacity    Int      @default(1)
+  active      Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservations Reservation[]
+  staff        StaffService[]
+
+  @@index([industry, active])
+}
+
+model Resource {
+  id        String       @id @default(cuid())
+  type      ResourceType
+  name      String
+  capacity  Int          @default(1)
+  active    Boolean      @default(true)
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  reservations Reservation[]
+
+  @@index([type, active])
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  role      String?
+  active    Boolean  @default(true)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  services      StaffService[]
+  reservations  Reservation[]
+  availability  AvailabilityRule[]
+  exceptions    AvailabilityException[]
+
+  @@index([active])
+}
+
+model StaffService {
+  staffId   String
+  serviceId String
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  locale      String   @default("es")
+  notes       String?
+  // Only used for MEDICO industry. Caller must ensure proper consent.
+  medicalData Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Reservation {
+  id          String            @id @default(cuid())
+  customerId  String
+  customer    Customer          @relation(fields: [customerId], references: [id])
+  serviceId   String
+  service     Service           @relation(fields: [serviceId], references: [id])
+  resourceId  String?
+  resource    Resource?         @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  staffId     String?
+  staff       Staff?            @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ReservationStatus @default(PENDING)
+  source      String            @default("web")
+  notes       String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  payments Payment[]
+
+  @@index([startsAt, endsAt])
+  @@index([staffId, startsAt])
+  @@index([resourceId, startsAt])
+  @@index([customerId])
+  @@index([status])
+}
+
+model AvailabilityRule {
+  id        String  @id @default(cuid())
+  staffId   String?
+  staff     Staff?  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  weekday   Int     // 0=Sunday, 6=Saturday
+  startMin  Int     // minutes from midnight
+  endMin    Int
+  active    Boolean @default(true)
+
+  @@index([staffId, weekday])
+}
+
+model AvailabilityException {
+  id        String   @id @default(cuid())
+  staffId   String?
+  staff     Staff?   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  blocked   Boolean  @default(true) // true = blocked, false = extra opening
+  startMin  Int?
+  endMin    Int?
+  reason    String?
+
+  @@index([date])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  reservationId String
+  reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  amountCents   Int
+  currency      String        @default("USD")
+  status        PaymentStatus @default(PENDING)
+  provider      String?       // "stripe" | "manual" | ...
+  externalId    String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([reservationId])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
