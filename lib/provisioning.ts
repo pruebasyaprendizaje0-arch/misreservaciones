@@ -1,6 +1,5 @@
 import { Client as PgClient } from 'pg';
 import { randomBytes } from 'node:crypto';
-import { execSync } from 'node:child_process';
 import { prismaControl } from './db/control';
 
 export type ProvisionInput = {
@@ -23,7 +22,7 @@ export function normalizeSlug(input: string): string {
   const base = input
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
@@ -37,10 +36,19 @@ function generatePassword(): string {
   return randomBytes(24).toString('base64url');
 }
 
-function buildDbUrl(slug: string, password: string): string {
-  const adminUrl = process.env.POSTGRES_ADMIN_URL;
-  if (!adminUrl) throw new Error('POSTGRES_ADMIN_URL not set');
+function getAdminUrl(): string {
+  const url =
+    process.env.POSTGRES_ADMIN_URL ||
+    process.env.DATABASE_URL_CONTROL ||
+    process.env.DATABASE_URL ||
+    'postgresql://postgres:postgres@xf0a53c3wv9f69ro3wdtyds1:5432/postgres';
 
+  // Fix internal Coolify hostname if present
+  return url.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+}
+
+function buildDbUrl(slug: string, password: string): string {
+  const adminUrl = getAdminUrl();
   const url = new URL(adminUrl);
   const host = url.hostname;
   const port = url.port || '5432';
@@ -60,17 +68,142 @@ async function ensureUniqueSlug(base: string): Promise<string> {
   return candidate;
 }
 
+const TENANT_DDL = `
+DO $$ BEGIN
+  CREATE TYPE "Industry" AS ENUM ('HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ResourceType" AS ENUM ('HABITACION', 'MESA', 'ASIENTO', 'CONSULTORIO', 'SILLA');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ReservationStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'REFUNDED', 'FAILED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE TABLE IF NOT EXISTS "Service" (
+  "id" TEXT PRIMARY KEY,
+  "industry" "Industry" NOT NULL,
+  "name" TEXT NOT NULL,
+  "description" TEXT,
+  "durationMin" INTEGER NOT NULL,
+  "priceCents" INTEGER NOT NULL DEFAULT 0,
+  "currency" TEXT NOT NULL DEFAULT 'USD',
+  "capacity" INTEGER NOT NULL DEFAULT 1,
+  "active" BOOLEAN NOT NULL DEFAULT true,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "Resource" (
+  "id" TEXT PRIMARY KEY,
+  "type" "ResourceType" NOT NULL,
+  "name" TEXT NOT NULL,
+  "capacity" INTEGER NOT NULL DEFAULT 1,
+  "active" BOOLEAN NOT NULL DEFAULT true,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "Staff" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "email" TEXT,
+  "phone" TEXT,
+  "role" TEXT,
+  "active" BOOLEAN NOT NULL DEFAULT true,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "StaffService" (
+  "staffId" TEXT NOT NULL REFERENCES "Staff"("id") ON DELETE CASCADE,
+  "serviceId" TEXT NOT NULL REFERENCES "Service"("id") ON DELETE CASCADE,
+  PRIMARY KEY ("staffId", "serviceId")
+);
+
+CREATE TABLE IF NOT EXISTS "Customer" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "email" TEXT,
+  "phone" TEXT,
+  "locale" TEXT NOT NULL DEFAULT 'es',
+  "notes" TEXT,
+  "medicalData" JSONB,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "Reservation" (
+  "id" TEXT PRIMARY KEY,
+  "customerId" TEXT NOT NULL REFERENCES "Customer"("id"),
+  "serviceId" TEXT NOT NULL REFERENCES "Service"("id"),
+  "resourceId" TEXT REFERENCES "Resource"("id") ON DELETE SET NULL,
+  "staffId" TEXT REFERENCES "Staff"("id") ON DELETE SET NULL,
+  "startsAt" TIMESTAMP(3) NOT NULL,
+  "endsAt" TIMESTAMP(3) NOT NULL,
+  "status" "ReservationStatus" NOT NULL DEFAULT 'PENDING',
+  "source" TEXT NOT NULL DEFAULT 'web',
+  "notes" TEXT,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "AvailabilityRule" (
+  "id" TEXT PRIMARY KEY,
+  "staffId" TEXT REFERENCES "Staff"("id") ON DELETE CASCADE,
+  "weekday" INTEGER NOT NULL,
+  "startMin" INTEGER NOT NULL,
+  "endMin" INTEGER NOT NULL,
+  "active" BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS "AvailabilityException" (
+  "id" TEXT PRIMARY KEY,
+  "staffId" TEXT REFERENCES "Staff"("id") ON DELETE CASCADE,
+  "date" DATE NOT NULL,
+  "blocked" BOOLEAN NOT NULL DEFAULT true,
+  "startMin" INTEGER,
+  "endMin" INTEGER,
+  "reason" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS "Payment" (
+  "id" TEXT PRIMARY KEY,
+  "reservationId" TEXT NOT NULL REFERENCES "Reservation"("id") ON DELETE CASCADE,
+  "amountCents" INTEGER NOT NULL,
+  "currency" TEXT NOT NULL DEFAULT 'USD',
+  "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+  "provider" TEXT,
+  "externalId" TEXT,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "Setting" (
+  "key" TEXT PRIMARY KEY,
+  "value" JSONB NOT NULL,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
 /**
  * Provisions a new tenant:
  *   1. Generates unique slug + secure password.
  *   2. Connects to Postgres as admin and creates role + database.
- *   3. Runs Prisma migrations against the new database.
+ *   3. Applies tenant DDL natively via SQL.
  *   4. Inserts a Tenant row in the control DB.
- *   5. Seeds default settings (timezone, locale, business hours).
- *
- * Requires:
- *   - POSTGRES_ADMIN_URL with CREATEDB privilege.
- *   - prisma CLI available in the runtime image.
+ *   5. Seeds default settings.
  */
 export async function provisionTenant(input: ProvisionInput): Promise<ProvisionResult> {
   const baseSlug = normalizeSlug(input.slug);
@@ -80,7 +213,7 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   const dbName = `mr_tenant_${slug.replace(/-/g, '_')}`;
   const role = `mr_${slug.replace(/-/g, '_')}`;
 
-  const adminUrl = process.env.POSTGRES_ADMIN_URL!;
+  const adminUrl = getAdminUrl();
   const admin = new PgClient({ connectionString: adminUrl });
   await admin.connect();
   try {
@@ -91,11 +224,15 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
     await admin.end();
   }
 
-  // Run db push to create tables against the new database
-  execSync('npx prisma db push --schema=prisma/schema.tenant.prisma --accept-data-loss', {
-    env: { ...process.env, DATABASE_URL: dbUrl },
-    stdio: 'inherit',
-  });
+  // Connect to the newly created database as admin to execute DDL
+  const tenantAdminUrl = adminUrl.replace(/\/[^/]+(\?.*)?$/, `/${dbName}$1`);
+  const tenantClient = new PgClient({ connectionString: tenantAdminUrl });
+  await tenantClient.connect();
+  try {
+    await tenantClient.query(TENANT_DDL);
+  } finally {
+    await tenantClient.end();
+  }
 
   // Insert into control DB
   const tenant = await prismaControl.tenant.create({
@@ -128,7 +265,7 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
     ],
   });
 
-  const rootDomain = process.env.ROOT_DOMAIN || 'tusreservas.com';
+  const rootDomain = process.env.ROOT_DOMAIN || 'ubicame.cc';
   return {
     tenantId: tenant.id,
     slug,
@@ -148,25 +285,23 @@ export async function deleteTenant(tenantId: string): Promise<void> {
   const tenant = await prismaControl.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) return;
 
-  const adminUrl = process.env.POSTGRES_ADMIN_URL;
-  if (adminUrl) {
-    const admin = new PgClient({ connectionString: adminUrl, connectionTimeoutMillis: 5000 });
-    try {
-      await admin.connect();
-      const dbName = `mr_tenant_${tenant.slug.replace(/-/g, '_')}`;
-      const role = `mr_${tenant.slug.replace(/-/g, '_')}`;
-      await admin.query(`REVOKE CONNECT ON DATABASE "${dbName}" FROM PUBLIC`);
-      await admin.query(
-        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1`,
-        [dbName]
-      );
-      await admin.query(`DROP DATABASE IF EXISTS "${dbName}"`);
-      await admin.query(`DROP ROLE IF EXISTS "${role}"`);
-    } catch (err) {
-      console.error('[deleteTenant] DB cleanup failed', err);
-    } finally {
-      await admin.end();
-    }
+  const adminUrl = getAdminUrl();
+  const admin = new PgClient({ connectionString: adminUrl, connectionTimeoutMillis: 5000 });
+  try {
+    await admin.connect();
+    const dbName = `mr_tenant_${tenant.slug.replace(/-/g, '_')}`;
+    const role = `mr_${tenant.slug.replace(/-/g, '_')}`;
+    await admin.query(`REVOKE CONNECT ON DATABASE "${dbName}" FROM PUBLIC`);
+    await admin.query(
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1`,
+      [dbName]
+    );
+    await admin.query(`DROP DATABASE IF EXISTS "${dbName}"`);
+    await admin.query(`DROP ROLE IF EXISTS "${role}"`);
+  } catch (err) {
+    console.error('[deleteTenant] DB cleanup failed', err);
+  } finally {
+    await admin.end();
   }
 
   await prismaControl.tenant.delete({ where: { id: tenantId } });
