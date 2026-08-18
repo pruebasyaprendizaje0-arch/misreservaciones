@@ -253,13 +253,50 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
             {loadingSlots ? t('loading') : t('search')}
           </button>
 
-          <h2 className="mt-6 text-lg font-semibold">{t('selectTime')}</h2>
+          <h2 className="mt-6 text-lg font-semibold">
+            {industry === 'HOSTAL' ? 'Selecciona una habitación disponible' : t('selectTime')}
+          </h2>
           {slots.length === 0 && !loadingSlots && (
             <p className="mt-3 text-sm text-slate-500">{t('noSlots')}</p>
           )}
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div className={industry === 'HOSTAL' ? 'mt-3 space-y-3' : 'mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4'}>
             {slots.map((slot) => {
               const start = new Date(slot.startsAt);
+              const end = new Date(slot.endsAt);
+              const room = resources.find((r) => r.id === slot.resourceId);
+
+              if (industry === 'HOSTAL') {
+                return (
+                  <button
+                    key={`${slot.startsAt}-${slot.resourceId}`}
+                    type="button"
+                    disabled={!slot.available}
+                    onClick={() => setChosenSlot(slot)}
+                    className={`w-full rounded-xl border p-4 text-left transition flex justify-between items-center ${
+                      !slot.available
+                        ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed line-through'
+                        : chosenSlot?.resourceId === slot.resourceId
+                        ? 'border-brand-500 bg-brand-50 text-brand-700 ring-2 ring-brand-200'
+                        : 'border-slate-200 hover:border-brand-300 bg-white'
+                    }`}
+                  >
+                    <div>
+                      <div className="font-bold text-slate-800">{room?.name || 'Habitación'}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        📅 Entrada: {format(start, 'dd/MM/yyyy')} (12:00) | Salida: {format(end, 'dd/MM/yyyy')} (12:00)
+                      </div>
+                    </div>
+                    <div>
+                      {slot.available ? (
+                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">Disponible</span>
+                      ) : (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">Ocupado</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              }
+
               return (
                 <button
                   key={`${slot.startsAt}-${slot.staffId ?? ''}-${slot.resourceId ?? ''}`}
@@ -318,10 +355,20 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
             </div>
           </div>
 
-          <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm">
+          <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-slate-700">
             <div><strong>{service.name}</strong></div>
             {chosenSlot && (
-              <div>{format(new Date(chosenSlot.startsAt), "PPPp")}</div>
+              <div className="mt-1.5 space-y-0.5 text-xs text-slate-600">
+                {industry === 'HOSTAL' ? (
+                  <>
+                    <div>🚪 Habitación: <strong>{resources.find((r) => r.id === chosenSlot.resourceId)?.name}</strong></div>
+                    <div>📅 Entrada (Check-in): {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy')} (12:00)</div>
+                    <div>📅 Salida (Check-out): {format(new Date(chosenSlot.endsAt), 'dd/MM/yyyy')} (12:00)</div>
+                  </>
+                ) : (
+                  <div>{format(new Date(chosenSlot.startsAt), "PPPp")}</div>
+                )}
+              </div>
             )}
           </div>
 
