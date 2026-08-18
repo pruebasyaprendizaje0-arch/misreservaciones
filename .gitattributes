@@ -1,0 +1,5 @@
+# Ensure shell scripts always use LF (Unix) line endings in the repository
+*.sh text eol=lf
+
+# Force LF for Dockerfile
+Dockerfile text eol=lf
