@@ -5,7 +5,7 @@ import { useState } from 'react';
 type Resource = {
   id: string;
   name: string;
-  description: string | null;
+  description?: string | null;
   capacity: number;
   active: boolean;
 };

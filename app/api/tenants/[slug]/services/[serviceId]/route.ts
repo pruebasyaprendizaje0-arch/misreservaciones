@@ -35,7 +35,7 @@ export async function PATCH(
 ) {
   const { slug, serviceId } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
-  if ('error' in owner) return errorResponse(owner.error);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
   const json = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(json);
@@ -59,7 +59,7 @@ export async function DELETE(
 ) {
   const { slug, serviceId } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
-  if ('error' in owner) return errorResponse(owner.error);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
   try {
     await owner.db.service.delete({ where: { id: serviceId } });

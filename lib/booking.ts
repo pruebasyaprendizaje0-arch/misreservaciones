@@ -50,7 +50,7 @@ export async function createBooking(
   const endsAt = addMinutes(data.startsAt, service.durationMin);
   const status: ReservationStatus = 'CONFIRMED';
 
-  return await db.$transaction(async (tx) => {
+  const result = (await db.$transaction(async (tx) => {
     const overlapping = await tx.reservation.findFirst({
       where: {
         status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN'] },
@@ -118,7 +118,7 @@ export async function createBooking(
     });
 
     return { ok: true as const, reservationId: reservation.id, endsAt, startsAt: data.startsAt };
-  });
+  })) as CreateBookingResult;
 
   // Fire-and-forget: send WhatsApp confirmation if customer has phone
   if (result.ok && data.customer.phone) {

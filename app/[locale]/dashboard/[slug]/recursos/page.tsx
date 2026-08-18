@@ -53,7 +53,7 @@ export default async function RecursosPage({
         initial={resources.map((r) => ({
           id: r.id,
           name: r.name,
-          description: r.description,
+          description: null,
           capacity: r.capacity,
           active: r.active,
         }))}

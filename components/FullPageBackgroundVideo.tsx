@@ -59,7 +59,6 @@ export function FullPageBackgroundVideo() {
         muted
         playsInline
         preload="auto"
-        decoding="auto"
         className="fixed left-0 top-0 w-full h-full object-cover opacity-100"
         style={{
           backfaceVisibility: 'hidden',

@@ -33,7 +33,7 @@ function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
-  if ('error' in owner) return errorResponse(owner.error);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
   // List customers with reservation count and services list
   const customers = await owner.db.customer.findMany({
@@ -58,7 +58,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
-  if ('error' in owner) return errorResponse(owner.error);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
   const json = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(json);
