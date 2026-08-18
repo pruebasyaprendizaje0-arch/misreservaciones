@@ -1,11 +1,14 @@
+# --- ETAPA 1: BASE ---
+# Usamos Node 22 Alpine para contar con las dependencias y librerías modernas nativas de compilación.
 FROM node:22-alpine AS base
 
-# Habilitar Corepack para usar pnpm de manera nativa y determinista
-RUN corepack enable && corepack prepare pnpm@9 --activate
+# Habilitamos Corepack y preparamos pnpm v9 para evitar cambios de ruptura de las versiones v10/v11.
+RUN corepack enable && corepack prepare pnpm@9 --activate && apk add --no-cache openssl && rm -rf /var/cache/apk/*
 
 # --- 1. INSTALACIÓN DE DEPENDENCIAS ---
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# Agregamos libc6-compat para compatibilidad con compilaciones nativas como Sharp y Prisma Engines.
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copiar archivos de dependencias y esquemas de Prisma
