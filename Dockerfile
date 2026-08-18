@@ -44,6 +44,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Instalar curl para que el healthcheck de Coolify funcione correctamente
+RUN apk add --no-cache curl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -62,5 +65,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 USER nextjs
 
 EXPOSE 3000
+
+# Healthcheck generoso para que Next.js tenga tiempo de arrancar
+HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=5 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 CMD ["node", "server.js"]
