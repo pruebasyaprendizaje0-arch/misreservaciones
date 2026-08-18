@@ -78,4 +78,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=5 \
   CMD curl -f http://localhost:3000/ || exit 1
 
-CMD ["/bin/sh", "/app/entrypoint.sh"]
+# Ejecutar migraciones de la BD de control y arrancar el servidor en un solo CMD
+# Usamos sh -c con && para garantizar que las migraciones corren primero
+CMD ["sh", "-c", "node node_modules/.bin/prisma migrate deploy --schema=prisma/schema.control.prisma && node server.js"]
