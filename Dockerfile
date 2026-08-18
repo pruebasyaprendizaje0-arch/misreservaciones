@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copiar archivos de dependencias y esquemas de Prisma
-COPY package.json pnpm-lock.yaml* package-lock.json* ./
+COPY package.json pnpm-lock.yaml* package-lock.json* .npmrc* ./
 COPY prisma ./prisma
 
 # Instalar dependencias con soporte para pnpm-lock o fallback de package-lock
