@@ -16,8 +16,15 @@ export function getTenantClient(dbUrl: string): TenantClient {
   const existing = cache.get(dbUrl);
   if (existing) return existing;
 
+  // Optimize pool size per tenant to prevent connection exhaustion
+  let url = dbUrl;
+  if (!url.includes('connection_limit')) {
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}connection_limit=3`;
+  }
+
   const client = new PrismaClient({
-    datasources: { db: { url: dbUrl } },
+    datasources: { db: { url } },
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
