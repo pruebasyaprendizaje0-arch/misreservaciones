@@ -80,4 +80,4 @@ HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=5 \
 
 # Ejecutar migraciones de la BD de control y arrancar el servidor en un solo CMD
 # Usamos sh -c con && para garantizar que las migraciones corren primero
-CMD ["sh", "-c", "node node_modules/.bin/prisma migrate deploy --schema=prisma/schema.control.prisma && node server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy --schema=prisma/schema.control.prisma && node server.js"]
