@@ -5,8 +5,8 @@
   "description": "Plataforma multi-tenant de reservaciones para hostales, masajes, peluquerías y centros médicos",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate --schema=prisma/schema.control.prisma && prisma generate --schema=prisma/schema.tenant.prisma && prisma migrate deploy --schema=prisma/schema.control.prisma && next build",
-    "start": "next start -p 3000",
+    "build": "prisma generate --schema=prisma/schema.control.prisma && prisma generate --schema=prisma/schema.tenant.prisma && next build",
+    "start": "prisma migrate deploy --schema=prisma/schema.control.prisma && next start -p 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "prisma:control:generate": "prisma generate --schema=prisma/schema.control.prisma",
