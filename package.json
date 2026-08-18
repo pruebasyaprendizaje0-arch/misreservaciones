@@ -13,7 +13,8 @@
     "prisma:control:migrate": "prisma migrate dev --schema=prisma/schema.control.prisma",
     "prisma:control:deploy": "prisma migrate deploy --schema=prisma/schema.control.prisma",
     "prisma:tenant:generate": "prisma generate --schema=prisma/schema.tenant.prisma",
-    "prisma:tenant:deploy": "prisma migrate deploy --schema=prisma/schema.tenant.prisma"
+    "prisma:tenant:deploy": "prisma migrate deploy --schema=prisma/schema.tenant.prisma",
+    "antigravity": "pnpm typecheck && pnpm build && C:\\Users\\Frank\\AppData\\Local\\Coolify\\coolify.exe deploy uuid ahb1ihvocd4y2eatwntbwmbh"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

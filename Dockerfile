@@ -1,0 +1,63 @@
+FROM node:20-alpine AS base
+
+# Habilitar Corepack para usar pnpm de manera nativa y determinista
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# --- 1. INSTALACIÓN DE DEPENDENCIAS ---
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copiar archivos de dependencias y esquemas de Prisma
+COPY package.json pnpm-lock.yaml* package-lock.json* ./
+COPY prisma ./prisma
+
+# Instalar dependencias con soporte para pnpm-lock o fallback de package-lock
+RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then pnpm install; \
+    else pnpm install; fi
+
+# --- 2. CONSTRUCCIÓN DE LA APLICACIÓN ---
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Generar de forma explícita e independiente los esquemas de Prisma
+RUN pnpm prisma generate --schema=prisma/schema.control.prisma
+RUN pnpm prisma generate --schema=prisma/schema.tenant.prisma
+
+# Compilar la aplicación Next.js
+RUN pnpm build
+
+# --- 3. IMAGEN DE PRODUCCIÓN ---
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copiar activos públicos y directorios requeridos
+COPY --from=builder /app/public ./public
+
+# Configurar el directorio de caché de Next.js
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Copiar la compilación standalone optimizada de Next.js
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+USER nextjs
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
