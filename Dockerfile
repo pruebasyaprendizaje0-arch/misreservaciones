@@ -1,7 +1,7 @@
 FROM node:22-alpine AS base
 
 # Habilitar Corepack para usar pnpm de manera nativa y determinista
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 # --- 1. INSTALACIÓN DE DEPENDENCIAS ---
 FROM base AS deps
