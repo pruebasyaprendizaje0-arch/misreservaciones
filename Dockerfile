@@ -86,4 +86,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=10s --start-period=30s --retries=5 \
   CMD curl -f http://localhost:3000/ || exit 1
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "server.js"]
