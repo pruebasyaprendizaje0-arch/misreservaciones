@@ -64,8 +64,14 @@
     "noSlots": "No slots available on that date.",
     "duration": "{minutes} min",
     "price": "Price",
-    "people": "{count} people"
+    "people": "{count} people",
+    "next": "Next",
+    "previous": "Previous",
+    "back": "Back",
+    "loading": "Loading...",
+    "search": "Search availability"
   },
+
   "dashboard": {
     "title": "Dashboard",
     "reservations": "Reservations",

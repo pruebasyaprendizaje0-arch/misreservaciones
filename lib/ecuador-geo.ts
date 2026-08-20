@@ -5,7 +5,9 @@
 
 export type Parroquia = {
   nombre: string;
+  comunas?: string[];
 };
+
 
 export type Canton = {
   nombre: string;
@@ -284,11 +286,23 @@ export const ECUADOR_GEO: Provincia[] = [
   {
     nombre: 'Santa Elena',
     cantones: [
-      { nombre: 'Santa Elena', parroquias: [{ nombre: 'Santa Elena' }, { nombre: 'Atahualpa' }, { nombre: 'Ballenita' }, { nombre: 'Colonche' }, { nombre: 'Chanduy' }, { nombre: 'Manglaralto' }, { nombre: 'Simón Bolívar' }] },
+      {
+        nombre: 'Santa Elena',
+        parroquias: [
+          { nombre: 'Santa Elena', comunas: ['Ballenita', 'Capaes', 'Punta Blanca', 'San Pablo', 'Prosperidad'] },
+          { nombre: 'Atahualpa', comunas: ['Atahualpa'] },
+          { nombre: 'Ballenita', comunas: ['Ballenita', 'Capaes'] },
+          { nombre: 'Colonche', comunas: ['Palmar', 'Monteverde', 'Bilsa', 'Manantial de Colonche', 'Salanguillo', 'Febres Cordero', 'Javita'] },
+          { nombre: 'Chanduy', comunas: ['Puerto Chale', 'Engunga', 'Tugaduaja', 'San Rafael', 'El Real'] },
+          { nombre: 'Manglaralto', comunas: ['Montañita', 'Olón', 'Curía', 'Las Núñez', 'Ayangue', 'San Pedro', 'Valdivia', 'Libertador Bolívar', 'Cadeate', 'Manglaralto', 'Río Chico', 'Montañita Alta'] },
+          { nombre: 'Simón Bolívar', comunas: ['Julio Moreno', 'Sube y Baja'] }
+        ]
+      },
       { nombre: 'La Libertad', parroquias: [{ nombre: 'La Libertad' }] },
       { nombre: 'Salinas', parroquias: [{ nombre: 'Salinas' }, { nombre: 'Anconcito' }, { nombre: 'José Luis Tamayo' }] },
     ],
   },
+
   {
     nombre: 'Santo Domingo de los Tsáchilas',
     cantones: [
@@ -356,3 +370,14 @@ export function getParroquiasForCanton(provincia: string, canton: string): strin
   const cant = prov.cantones.find((c) => c.nombre === canton);
   return cant ? cant.parroquias.map((p) => p.nombre).sort() : [];
 }
+
+/** Returns all comuna names for a given province + canton + parroquia */
+export function getComunasForParroquia(provincia: string, canton: string, parroquia: string): string[] {
+  const prov = ECUADOR_GEO.find((p) => p.nombre === provincia);
+  if (!prov) return [];
+  const cant = prov.cantones.find((c) => c.nombre === canton);
+  if (!cant) return [];
+  const parr = cant.parroquias.find((p) => p.nombre === parroquia);
+  return parr && parr.comunas ? [...parr.comunas].sort() : [];
+}
+

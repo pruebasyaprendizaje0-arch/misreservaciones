@@ -2,10 +2,11 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
 import Link from 'next/link';
 import { ReservationCalendar } from '@/components/dashboard/ReservationCalendar';
+import { DashboardHeaderActions } from '@/components/dashboard/DashboardHeaderActions';
 
 export default async function TenantDashboard({
   params,
@@ -64,211 +65,198 @@ export default async function TenantDashboard({
   const t = await getTranslations('dashboard');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{tenant.name}</h1>
-          <p className="text-sm text-slate-500 mt-1">Panel de administración de tu negocio</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{tenant.name}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Panel de administración de tu negocio</p>
+          </div>
+          <DashboardHeaderActions slug={slug} locale={locale} />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={`/${locale}`}
-            className="btn-secondary text-xs sm:text-sm inline-flex items-center gap-1.5"
-          >
-            🏠 App principal
-          </a>
-          <a
-            href={`/${locale}/${slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary text-xs sm:text-sm inline-flex items-center gap-1.5"
-          >
-            🔗 Ver página pública
-          </a>
+
+        {/* ── Quick Nav ──────────────────────────────────────── */}
+        <nav className="mt-6 flex flex-wrap gap-2">
+          {[
+            { href: `/${locale}/dashboard/${slug}?view=calendar`, label: tenant.industry === 'MEDICO' ? '📅 Consultas' : tenant.industry === 'HOSTAL' ? '📅 Estancias' : '📅 Reservas' },
+            { href: `/${locale}/dashboard/${slug}/servicios`, label: tenant.industry === 'MEDICO' ? '🩺 Consultas y Tratamientos' : tenant.industry === 'HOSTAL' ? '🛌 Habitaciones y Tarifas' : tenant.industry === 'MASAJE' ? '💆 Servicios y Masajes' : '💈 Servicios y Cortes' },
+            { href: `/${locale}/dashboard/${slug}/personal`, label: tenant.industry === 'MEDICO' ? '👥 Médicos' : tenant.industry === 'HOSTAL' ? '👥 Empleados' : tenant.industry === 'MASAJE' ? '👥 Terapeutas' : '👥 Estilistas' },
+            { href: `/${locale}/dashboard/${slug}/recursos`, label: tenant.industry === 'MEDICO' ? '🏥 Consultorios' : tenant.industry === 'HOSTAL' ? '🔑 Habitaciones' : tenant.industry === 'MASAJE' ? '🏠 Cabinas / Camillas' : '🪑 Sillas / Tocadores' },
+            { href: `/${locale}/dashboard/${slug}/clientes`, label: tenant.industry === 'MEDICO' ? '👤 Pacientes' : tenant.industry === 'HOSTAL' ? '👤 Huéspedes' : '👤 Clientes' },
+            { href: `/${locale}/dashboard/${slug}/estadisticas`, label: '📊 Estadísticas' },
+            { href: `/${locale}/dashboard/${slug}/perfil`, label: '⚙️ Perfil' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* ── View switcher for reservations ────────────────── */}
+        <div className="mt-6 flex items-center gap-3">
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-100 dark:bg-slate-900">
+            <Link
+              href={`/${locale}/dashboard/${slug}?view=calendar`}
+              className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition ${
+                view === 'calendar'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              }`}
+            >
+              Calendario
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/${slug}?view=list`}
+              className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition ${
+                view === 'list'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              }`}
+            >
+              Lista
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* ── Quick Nav ──────────────────────────────────────── */}
-      <nav className="mt-6 flex flex-wrap gap-2">
-        {[
-          { href: `/${locale}/dashboard/${slug}?view=calendar`, label: tenant.industry === 'MEDICO' ? '📅 Consultas' : tenant.industry === 'HOSTAL' ? '📅 Estancias' : '📅 Reservas' },
-          { href: `/${locale}/dashboard/${slug}/servicios`, label: tenant.industry === 'MEDICO' ? '🩺 Consultas y Tratamientos' : tenant.industry === 'HOSTAL' ? '🛌 Habitaciones y Tarifas' : tenant.industry === 'MASAJE' ? '💆 Servicios y Masajes' : '💈 Servicios y Cortes' },
-          { href: `/${locale}/dashboard/${slug}/personal`, label: tenant.industry === 'MEDICO' ? '👥 Médicos' : tenant.industry === 'HOSTAL' ? '👥 Empleados' : tenant.industry === 'MASAJE' ? '👥 Terapeutas' : '👥 Estilistas' },
-          { href: `/${locale}/dashboard/${slug}/recursos`, label: tenant.industry === 'MEDICO' ? '🏥 Consultorios' : tenant.industry === 'HOSTAL' ? '🔑 Habitaciones' : tenant.industry === 'MASAJE' ? '🏠 Cabinas / Camillas' : '🪑 Sillas / Tocadores' },
-          { href: `/${locale}/dashboard/${slug}/clientes`, label: tenant.industry === 'MEDICO' ? '👤 Pacientes' : tenant.industry === 'HOSTAL' ? '👤 Huéspedes' : '👤 Clientes' },
-          { href: `/${locale}/dashboard/${slug}/estadisticas`, label: '📊 Estadísticas' },
-          { href: `/${locale}/dashboard/${slug}/perfil`, label: '⚙️ Perfil' },
-        ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      {/* ── View switcher for reservations ────────────────── */}
-      <div className="mt-6 flex items-center gap-3">
-        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100">
-          <Link
-            href={`/${locale}/dashboard/${slug}?view=calendar`}
-            className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition ${
-              view === 'calendar'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            Calendario
-          </Link>
-          <Link
-            href={`/${locale}/dashboard/${slug}?view=list`}
-            className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition ${
-              view === 'list'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            Lista
-          </Link>
+        <div className="mt-8 grid gap-5 sm:grid-cols-3">
+          <Stat label={t('todayReservations')} value={today.length} />
+          <Stat label={t('services')} value={servicesCount} />
+          <Stat label={t('customers')} value={customersCount} />
         </div>
-      </div>
 
+        <div className="mt-8 grid gap-8 lg:grid-cols-4">
+          <div className="lg:col-span-3">
+            {view === 'calendar' ? (
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">{t('calendar')}</h2>
+                <ReservationCalendar slug={slug} initialEvents={events} locale={locale} />
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <section>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{t('todayReservations')}</h2>
+                  {today.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400 italic">No hay reservas programadas para hoy.</p>
+                  ) : (
+                    <ReservationsTable rows={today} locale={locale} />
+                  )}
+                </section>
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-3">
-        <Stat label={t('todayReservations')} value={today.length} />
-        <Stat label={t('services')} value={servicesCount} />
-        <Stat label={t('customers')} value={customersCount} />
-      </div>
+                <section>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Próximas Reservas</h2>
+                  {calendarReservations.filter(r => r.startsAt > todayEnd).length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400 italic">No hay reservas programadas próximas.</p>
+                  ) : (
+                    <ReservationsTable 
+                      rows={calendarReservations.filter(r => r.startsAt > todayEnd).slice(0, 15)} 
+                      locale={locale} 
+                    />
+                  )}
+                </section>
+              </div>
+            )}
+          </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-4">
-        <div className="lg:col-span-3">
-          {view === 'calendar' ? (
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-4">{t('calendar')}</h2>
-              <ReservationCalendar initialEvents={events} locale={locale} />
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <section>
-                <h2 className="text-xl font-bold text-slate-900">{t('todayReservations')}</h2>
-                {today.length === 0 ? (
-                  <p className="mt-3 text-sm text-slate-500 italic">No hay reservas programadas para hoy.</p>
-                ) : (
-                  <ReservationsTable rows={today} locale={locale} />
-                )}
-              </section>
-
-              <section>
-                <h2 className="text-xl font-bold text-slate-900">Próximas Reservas</h2>
-                {calendarReservations.filter(r => r.startsAt > todayEnd).length === 0 ? (
-                  <p className="mt-3 text-sm text-slate-500 italic">No hay reservas programadas próximas.</p>
-                ) : (
-                  <ReservationsTable 
-                    rows={calendarReservations.filter(r => r.startsAt > todayEnd).slice(0, 15)} 
-                    locale={locale} 
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+              <div className="flex items-center gap-4 mb-4">
+                {tenant.logoUrl ? (
+                  <img
+                    src={tenant.logoUrl}
+                    alt={tenant.name}
+                    className="w-16 h-16 rounded-xl object-cover border border-slate-100 dark:border-slate-800"
                   />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 flex items-center justify-center text-2xl">
+                    🏪
+                  </div>
                 )}
-              </section>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              {tenant.logoUrl ? (
-                <img
-                  src={tenant.logoUrl}
-                  alt={tenant.name}
-                  className="w-16 h-16 rounded-xl object-cover border border-slate-100"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-2xl">
-                  🏪
-                </div>
-              )}
-              <div>
-                <h3 className="font-bold text-slate-900 leading-tight">{tenant.name}</h3>
-                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium capitalize">
-                  {tenant.industry.toLowerCase()}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-slate-100 text-sm">
-              <div>
-                <span className="text-xs font-semibold text-slate-400 uppercase block">Plan y Estado</span>
-                <div className="flex gap-2 mt-1">
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                    tenant.plan === 'BUSINESS'
-                      ? 'bg-purple-100 text-purple-700'
-                      : tenant.plan === 'PRO'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {tenant.plan}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                    tenant.status === 'ACTIVE'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {tenant.status}
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 leading-tight">{tenant.name}</h3>
+                  <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium capitalize">
+                    {tenant.industry.toLowerCase()}
                   </span>
                 </div>
               </div>
 
-              {tenant.phone && (
+              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase block">Contacto</span>
-                  <a href={`tel:${tenant.phone}`} className="text-slate-700 hover:text-indigo-600 transition-colors font-medium">
-                    📞 {tenant.phone}
-                  </a>
+                  <span className="text-xs font-semibold text-slate-400 uppercase block">Plan y Estado</span>
+                  <div className="flex gap-2 mt-1">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                      tenant.plan === 'BUSINESS'
+                        ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                        : tenant.plan === 'PRO'
+                        ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}>
+                      {tenant.plan}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                      tenant.status === 'ACTIVE'
+                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                    }`}>
+                      {tenant.status}
+                    </span>
+                  </div>
                 </div>
-              )}
 
-              {(tenant.provincia || tenant.canton || tenant.parroquia || tenant.address) && (
-                <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase block">Ubicación</span>
-                  <p className="text-slate-600 text-xs mt-0.5">
-                    {[tenant.parroquia, tenant.canton, tenant.provincia].filter(Boolean).join(', ')}
-                  </p>
-                  {tenant.address && (
-                    <p className="text-slate-700 font-medium mt-1">📍 {tenant.address}</p>
-                  )}
-                  {tenant.lat && tenant.lng && (
-                    <a
-                      href={`https://www.google.com/maps?q=${tenant.lat},${tenant.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-indigo-600 hover:underline mt-1 inline-block"
-                    >
-                      🗺 Ver en Google Maps
+                {tenant.phone && (
+                  <div>
+                    <span className="text-xs font-semibold text-slate-400 uppercase block">Contacto</span>
+                    <a href={`tel:${tenant.phone}`} className="text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
+                      📞 {tenant.phone}
                     </a>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {tenant.description && (
-                <div className="pt-2 border-t border-slate-50">
-                  <span className="text-xs font-semibold text-slate-400 uppercase block">Descripción</span>
-                  <p className="text-slate-600 text-xs mt-1 leading-relaxed italic">
-                    "{tenant.description}"
-                  </p>
-                </div>
-              )}
-            </div>
+                {(tenant.provincia || tenant.canton || tenant.parroquia || (tenant as any).comuna || tenant.address) && (
+                  <div>
+                    <span className="text-xs font-semibold text-slate-400 uppercase block">Ubicación</span>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">
+                      {[(tenant as any).comuna ? `Comuna ${(tenant as any).comuna}` : null, tenant.parroquia, tenant.canton, tenant.provincia].filter(Boolean).join(', ')}
+                    </p>
 
-            <div className="mt-5 pt-4 border-t border-slate-100">
-              <Link
-                href={`/${locale}/dashboard/${slug}/perfil`}
-                className="w-full text-center block text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/85 py-2 rounded-lg transition-colors"
-              >
-                ⚙️ Editar Información
-              </Link>
+                    {tenant.address && (
+                      <p className="text-slate-700 dark:text-slate-300 font-medium mt-1">📍 {tenant.address}</p>
+                    )}
+                    {tenant.lat && tenant.lng && (
+                      <a
+                        href={`https://www.google.com/maps?q=${tenant.lat},${tenant.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mt-1 inline-block"
+                      >
+                        🗺 Ver en Google Maps
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {tenant.description && (
+                  <div className="pt-2 border-t border-slate-50 dark:border-slate-800">
+                    <span className="text-xs font-semibold text-slate-400 uppercase block">Descripción</span>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs mt-1 leading-relaxed italic">
+                      "{tenant.description}"
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Link
+                  href={`/${locale}/dashboard/${slug}/perfil`}
+                  className="w-full text-center block text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900 py-2.5 rounded-lg transition-colors border border-indigo-100 dark:border-indigo-800/60"
+                >
+                  ⚙️ Editar Información
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -279,9 +267,9 @@ export default async function TenantDashboard({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</div>
-      <div className="mt-2 text-3xl font-extrabold text-slate-950">{value}</div>
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</div>
+      <div className="mt-2 text-3xl font-extrabold text-slate-950 dark:text-slate-100">{value}</div>
     </div>
   );
 }
@@ -303,9 +291,9 @@ function ReservationsTable({
   locale: string;
 }) {
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+        <thead className="bg-slate-50 dark:bg-slate-800/80 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
           <tr>
             <th className="px-4 py-3">Fecha y Hora</th>
             <th className="px-4 py-3">Cliente</th>
@@ -315,26 +303,26 @@ function ReservationsTable({
             <th className="px-4 py-3">Estado</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {rows.map((r) => (
-            <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-              <td className="px-4 py-3.5 font-medium text-slate-900">
+            <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+              <td className="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-100">
                 {r.startsAt.toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}
               </td>
-              <td className="px-4 py-3.5 text-slate-700">{r.customer.name}</td>
-              <td className="px-4 py-3.5 text-slate-700 font-medium">{r.service.name}</td>
-              <td className="px-4 py-3.5 text-slate-500">{r.resource?.name ?? '—'}</td>
-              <td className="px-4 py-3.5 text-slate-500">{r.staff?.name ?? '—'}</td>
+              <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{r.customer.name}</td>
+              <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300 font-medium">{r.service.name}</td>
+              <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{r.resource?.name ?? '—'}</td>
+              <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{r.staff?.name ?? '—'}</td>
               <td className="px-4 py-3.5">
                 <span
                   className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
                     r.status === 'CONFIRMED'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300'
                       : r.status === 'PENDING'
-                      ? 'bg-amber-50 text-amber-700'
+                      ? 'bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
                       : r.status === 'COMPLETED'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-red-50 text-red-700'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-red-50 dark:bg-red-950/80 text-red-700 dark:text-red-300'
                   }`}
                 >
                   {r.status}

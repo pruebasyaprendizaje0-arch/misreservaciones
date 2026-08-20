@@ -7,7 +7,7 @@ import { getTenantClient } from '@/lib/db/tenant';
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   description: z.string().max(2000).optional(),
-  durationMin: z.number().int().min(5).max(24 * 60),
+  durationMin: z.number().int().min(1).max(30 * 24 * 60),
   priceCents: z.number().int().min(0),
   industry: z.enum(['HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO']),
   capacity: z.number().int().min(1).default(1),
@@ -25,6 +25,17 @@ async function resolveOwnerDb(slug: string) {
   return { dbUrl: tenant.dbUrl, db: getTenantClient(tenant.dbUrl) };
 }
 
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const { slug } = await ctx.params;
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) {
+    const status = owner.error === 'UNAUTHORIZED' ? 401 : owner.error === 'FORBIDDEN' ? 403 : 404;
+    return NextResponse.json({ error: owner.error }, { status });
+  }
+  const services = await owner.db.service.findMany({ orderBy: { createdAt: 'asc' } });
+  return NextResponse.json({ services });
+}
+
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
@@ -35,7 +46,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    console.log("SERVICE VALIDATION FAILURE:", parsed.error.format());
+    console.log('SERVICE VALIDATION FAILURE:', parsed.error.format());
     return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
   }
   const service = await owner.db.service.create({ data: parsed.data });

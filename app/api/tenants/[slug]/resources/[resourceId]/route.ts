@@ -9,7 +9,9 @@ const patchSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   capacity: z.number().int().min(1).optional(),
   active: z.boolean().optional(),
+  metadata: z.any().optional().nullable(),
 });
+
 
 async function resolveOwnerDb(slug: string) {
   const session = await auth();

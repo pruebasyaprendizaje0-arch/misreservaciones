@@ -35,10 +35,11 @@ export default async function PerfilPage({
             <Link href={`/${locale}`} className="rounded-lg bg-slate-800 border border-slate-700/80 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all shadow-sm">
               🏠 App principal
             </Link>
-            <Link href={`/${locale}/dashboard/${slug}`} className="rounded-lg bg-slate-800 border border-slate-700/80 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all shadow-sm">
-              ← Panel
+            <Link href={`/${locale}/dashboard/${slug}`} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 border border-indigo-500 px-4 py-2 text-sm font-bold text-white transition-all shadow-sm">
+              ← Volver al Panel
             </Link>
           </div>
+
         </div>
 
         <ProfileForm
@@ -52,11 +53,17 @@ export default async function PerfilPage({
             provincia: tenant.provincia,
             canton: tenant.canton,
             parroquia: tenant.parroquia,
+            comuna: (tenant as any).comuna ?? null,
             lat: tenant.lat,
+
             lng: tenant.lng,
             logoUrl: tenant.logoUrl,
+            coverUrl: tenant.coverUrl,
+            metadata: tenant.metadata,
+            industry: tenant.industry,
           }}
         />
+
       </div>
     </div>
   );

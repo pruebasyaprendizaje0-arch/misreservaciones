@@ -8,7 +8,9 @@ const createSchema = z.object({
   name: z.string().min(2).max(120),
   description: z.string().max(500).optional().nullable(),
   capacity: z.number().int().min(1).default(1),
+  metadata: z.any().optional().nullable(),
 });
+
 
 async function resolveOwnerDb(slug: string) {
   const session = await auth();
@@ -57,8 +59,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     data: {
       name: parsed.data.name,
       capacity: parsed.data.capacity,
+      metadata: {
+        ...(parsed.data.metadata || {}),
+        description: parsed.data.description || null,
+      },
       type,
     },
   });
+
+
   return NextResponse.json({ resource }, { status: 201 });
 }

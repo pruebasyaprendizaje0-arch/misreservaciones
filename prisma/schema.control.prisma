@@ -102,9 +102,11 @@ model Tenant {
   provincia   String?
   canton      String?
   parroquia   String?
+  comuna      String?
   address     String?
   lat         Float?
   lng         Float?
+
 
   // Public profile fields
   phone       String?

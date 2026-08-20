@@ -4,13 +4,23 @@ import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
 
-const patchSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(2).max(120).optional(),
-  email: z.string().email().optional().nullable(),
+const createSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email().optional().nullable().or(z.literal('')),
   phone: z.string().max(40).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   medicalData: z.any().optional().nullable(),
+  metadata: z.any().optional().nullable(),
+});
+
+const patchSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(2).max(120).optional(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  phone: z.string().max(40).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+  medicalData: z.any().optional().nullable(),
+  metadata: z.any().optional().nullable(),
 });
 
 async function resolveOwnerDb(slug: string) {
@@ -35,7 +45,6 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
-  // List customers with reservation count and services list
   const customers = await owner.db.customer.findMany({
     orderBy: { name: 'asc' },
     include: {
@@ -55,6 +64,31 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
   return NextResponse.json({ customers, industry: owner.tenant.industry });
 }
 
+export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const { slug } = await ctx.params;
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
+
+  const json = await req.json().catch(() => null);
+  const parsed = createSchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
+  }
+
+  const customer = await owner.db.customer.create({
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email || null,
+      phone: parsed.data.phone || null,
+      notes: parsed.data.notes || null,
+      medicalData: parsed.data.medicalData ?? undefined,
+      metadata: parsed.data.metadata ?? undefined,
+    },
+  });
+
+  return NextResponse.json({ ok: true, customer }, { status: 201 });
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
   const owner = await resolveOwnerDb(slug);
@@ -68,7 +102,6 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: str
 
   const { id, ...data } = parsed.data;
 
-  // Verify customer exists
   const existing = await owner.db.customer.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: 'CUSTOMER_NOT_FOUND' }, { status: 404 });
@@ -77,11 +110,33 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: str
   const updated = await owner.db.customer.update({
     where: { id },
     data: {
-      ...data,
-      // If medicalData is passed, keep or update it
+      name: data.name,
+      email: data.email || null,
+      phone: data.phone || null,
+      notes: data.notes || null,
       ...(data.medicalData !== undefined ? { medicalData: data.medicalData ?? undefined } : {}),
+      ...(data.metadata !== undefined ? { metadata: data.metadata ?? undefined } : {}),
     },
   });
 
   return NextResponse.json({ customer: updated });
+}
+
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const { slug } = await ctx.params;
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+
+    await owner.db.customer.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Error al eliminar cliente:', error);
+    return NextResponse.json({ error: 'Error al eliminar cliente' }, { status: 500 });
+  }
 }

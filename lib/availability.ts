@@ -7,7 +7,8 @@ export type SlotInput = {
   serviceId: string;
   staffId?: string;
   resourceId?: string;
-  date: Date; // any time on the desired day (local time)
+  date: Date; // Check-in date
+  checkOutDate?: Date; // Check-out date
   timezone?: string; // IANA timezone, default APP_TIMEZONE
 };
 
@@ -21,20 +22,6 @@ export type Slot = {
 
 /**
  * Computes bookable slots for a service on a given day.
- *
- * Strategy:
- *   1. Load service (duration, capacity, industry).
- *   2. Load availability rules (staff-specific or global).
- *   3. Load reservations for the day that overlap with availability windows.
- *   4. Generate candidate slots at `durationMin` increments (with small buffer).
- *   5. Mark each slot available only if no overlap with existing reservations
- *      for the requested staff/resource.
- *
- * Industry-specific behavior:
- *   - HOSTAL: treat each "slot" as a night; check-in at noon, check-out at noon.
- *     This is a coarse simplification; full per-room date range overlap.
- *   - RESTAURANTE: respect shift windows (almuerzo/cena).
- *   - PELUQUERIA / MEDICO: standard slot-by-duration.
  */
 export async function computeSlots(input: SlotInput): Promise<Slot[]> {
   const db = getTenantClient(input.dbUrl);
@@ -139,9 +126,16 @@ async function computeHostalSlots(
   input: SlotInput,
   _durationMin: number
 ): Promise<Slot[]> {
-  // For hostal, a "slot" is one night for a room.
-  const dayStart = startOfDay(input.date);
-  const dayEnd = endOfDay(input.date);
+  const checkIn = startOfDay(input.date);
+  checkIn.setHours(12, 0, 0, 0);
+
+  let checkOut = input.checkOutDate ? startOfDay(input.checkOutDate) : new Date(checkIn.getTime() + 24 * 60 * 60 * 1000);
+  checkOut.setHours(12, 0, 0, 0);
+
+  if (checkOut <= checkIn) {
+    checkOut = new Date(checkIn.getTime() + 24 * 60 * 60 * 1000);
+    checkOut.setHours(12, 0, 0, 0);
+  }
 
   const rooms = await db.resource.findMany({
     where: { type: 'HABITACION', active: true, ...(input.resourceId ? { id: input.resourceId } : {}) },
@@ -151,17 +145,11 @@ async function computeHostalSlots(
     where: {
       resourceId: { in: rooms.map((r) => r.id) },
       status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN'] },
-      startsAt: { lt: dayEnd },
-      endsAt: { gt: dayStart },
+      startsAt: { lt: checkOut },
+      endsAt: { gt: checkIn },
     },
     select: { resourceId: true, startsAt: true, endsAt: true },
   });
-
-  const checkIn = new Date(dayStart);
-  checkIn.setHours(12, 0, 0, 0);
-  const checkOut = new Date(dayStart);
-  checkOut.setDate(checkOut.getDate() + 1);
-  checkOut.setHours(12, 0, 0, 0);
 
   return rooms.map((room) => {
     const occupied = reservations.some(
@@ -175,3 +163,4 @@ async function computeHostalSlots(
     };
   });
 }
+

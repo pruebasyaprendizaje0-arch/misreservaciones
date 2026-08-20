@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProvincias, getCantonesForProvincia, getParroquiasForCanton } from '@/lib/ecuador-geo';
+import {
+  getProvincias,
+  getCantonesForProvincia,
+  getParroquiasForCanton,
+  getComunasForParroquia,
+} from '@/lib/ecuador-geo';
+import { ImageUploader } from './ImageUploader';
 
 type TenantProfile = {
   name: string;
@@ -12,9 +18,13 @@ type TenantProfile = {
   provincia: string | null;
   canton: string | null;
   parroquia: string | null;
+  comuna: string | null;
   lat: number | null;
   lng: number | null;
   logoUrl: string | null;
+  coverUrl?: string | null;
+  metadata?: any;
+  industry?: string;
 };
 
 type Props = { slug: string; initial: TenantProfile; locale: string };
@@ -29,10 +39,16 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     provincia: initial.provincia ?? '',
     canton: initial.canton ?? '',
     parroquia: initial.parroquia ?? '',
+    comuna: initial.comuna ?? '',
     lat: initial.lat?.toString() ?? '',
     lng: initial.lng?.toString() ?? '',
     logoUrl: initial.logoUrl ?? '',
+    coverUrl: initial.coverUrl ?? '',
   });
+
+  const [commonAreaPhotos, setCommonAreaPhotos] = useState<string[]>(
+    () => initial.metadata?.commonAreaPhotos || []
+  );
 
   const [provincias] = useState(() => getProvincias());
   const [cantones, setCantones] = useState<string[]>(() =>
@@ -41,7 +57,13 @@ export function ProfileForm({ slug, initial, locale }: Props) {
   const [parroquias, setParroquias] = useState<string[]>(() =>
     form.provincia && form.canton ? getParroquiasForCanton(form.provincia, form.canton) : []
   );
+  const [comunas, setComunas] = useState<string[]>(() =>
+    form.provincia && form.canton && form.parroquia
+      ? getComunasForParroquia(form.provincia, form.canton, form.parroquia)
+      : []
+  );
 
+  const [isCustomComuna, setIsCustomComuna] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,16 +72,23 @@ export function ProfileForm({ slug, initial, locale }: Props) {
   const setField = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // Cascade: when province changes, reset canton and parish
   function handleProvinciaChange(value: string) {
-    setForm((f) => ({ ...f, provincia: value, canton: '', parroquia: '' }));
+    setForm((f) => ({ ...f, provincia: value, canton: '', parroquia: '', comuna: '' }));
     setCantones(getCantonesForProvincia(value));
     setParroquias([]);
+    setComunas([]);
   }
 
   function handleCantonChange(value: string) {
-    setForm((f) => ({ ...f, canton: value, parroquia: '' }));
+    setForm((f) => ({ ...f, canton: value, parroquia: '', comuna: '' }));
     setParroquias(getParroquiasForCanton(form.provincia, value));
+    setComunas([]);
+  }
+
+  function handleParroquiaChange(value: string) {
+    setForm((f) => ({ ...f, parroquia: value, comuna: '' }));
+    const availableComunas = getComunasForParroquia(form.provincia, form.canton, value);
+    setComunas(availableComunas);
   }
 
   function handleGetLocation() {
@@ -90,6 +119,14 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     setError(null);
     setSaved(false);
 
+    const updatedMetadata = {
+      ...(initial.metadata || {}),
+      commonAreaPhotos,
+    };
+
+    const parsedLat = form.lat ? parseFloat(form.lat) : null;
+    const parsedLng = form.lng ? parseFloat(form.lng) : null;
+
     const body = {
       name: form.name,
       description: form.description || null,
@@ -98,10 +135,14 @@ export function ProfileForm({ slug, initial, locale }: Props) {
       provincia: form.provincia || null,
       canton: form.canton || null,
       parroquia: form.parroquia || null,
-      lat: form.lat ? parseFloat(form.lat) : null,
-      lng: form.lng ? parseFloat(form.lng) : null,
+      comuna: form.comuna || null,
+      lat: parsedLat !== null && !isNaN(parsedLat) ? parsedLat : null,
+      lng: parsedLng !== null && !isNaN(parsedLng) ? parsedLng : null,
       logoUrl: form.logoUrl || null,
+      coverUrl: form.coverUrl || null,
+      metadata: updatedMetadata,
     };
+
 
     const res = await fetch(`/api/tenants/${slug}`, {
       method: 'PATCH',
@@ -113,14 +154,46 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data?.error ?? 'Error al guardar. Intenta de nuevo.');
     }
   }
 
+  const isHostal = initial.industry === 'HOSTAL';
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8 text-slate-100">
+      {/* Imágen de Portada y Logo */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-6">
+        <h2 className="text-base font-bold text-white mb-2 flex items-center gap-2">
+          <span className="text-xl">🖼️</span> Logotipo e Imagen de Portada
+        </h2>
+
+        {/* Banner / Portada */}
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-300">Imagen de Portada (Banner superior)</label>
+          <ImageUploader
+            value={form.coverUrl}
+            onChange={(url) => setField('coverUrl', url)}
+            placeholder="Subir imagen de portada (Banner)"
+            aspectRatio="banner"
+          />
+        </div>
+
+        {/* Logo */}
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-300">Logo del Negocio</label>
+          <ImageUploader
+            value={form.logoUrl}
+            onChange={(url) => setField('logoUrl', url)}
+            placeholder="Subir logotipo"
+            aspectRatio="square"
+          />
+        </div>
+      </section>
+
       {/* Datos del negocio */}
       <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm">
         <h2 className="text-base font-bold text-white mb-5 flex items-center gap-2">
@@ -147,8 +220,8 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               placeholder="Cuéntale a tus clientes qué ofrece tu negocio, qué te hace especial..."
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-300">Teléfono de contacto</label>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-semibold text-slate-300">Teléfono de contacto / WhatsApp</label>
             <input
               className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               value={form.phone}
@@ -156,18 +229,29 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               placeholder="+593 99 999 9999"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-300">URL del Logo</label>
-            <input
-              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              type="url"
-              value={form.logoUrl}
-              onChange={(e) => setField('logoUrl', e.target.value)}
-              placeholder="https://..."
-            />
-            <p className="mt-1.5 text-xs text-slate-500">Pega el enlace de tu logo (Cloudinary, Imgur, etc.)</p>
-          </div>
         </div>
+      </section>
+
+      {/* Áreas Comunes / Galería del Establecimiento */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <span className="text-xl">{isHostal ? '🏊' : '📸'}</span>{' '}
+            {isHostal ? 'Fotos de Áreas Comunes (Piscina, Terraza, Cocina, Recepción)' : 'Galería de Fotos del Establecimiento'}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {isHostal
+              ? 'Sube fotos de las instalaciones compartidas que disfrutarán los huéspedes.'
+              : 'Sube fotos representativas de tu establecimiento.'}
+          </p>
+        </div>
+
+        <ImageUploader
+          multiple
+          value={commonAreaPhotos}
+          onChange={(urls) => setCommonAreaPhotos(urls)}
+          placeholder="Agregar fotos"
+        />
       </section>
 
       {/* Ubicación en Ecuador */}
@@ -175,7 +259,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
         <h2 className="text-base font-bold text-white mb-5 flex items-center gap-2">
           <span className="text-xl">📍</span> Ubicación en Ecuador
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Provincia */}
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-slate-300">Provincia</label>
@@ -213,7 +297,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
             <select
               className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
               value={form.parroquia}
-              onChange={(e) => setField('parroquia', e.target.value)}
+              onChange={(e) => handleParroquiaChange(e.target.value)}
               disabled={!form.canton}
             >
               <option value="" className="bg-slate-900">— Selecciona —</option>
@@ -223,7 +307,45 @@ export function ProfileForm({ slug, initial, locale }: Props) {
             </select>
           </div>
 
-          <div className="sm:col-span-3">
+          {/* Comuna / Sector */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-semibold text-slate-300">Comuna / Sector</label>
+              {comunas.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsCustomComuna(!isCustomComuna)}
+                  className="text-xs text-indigo-400 hover:underline font-semibold"
+                >
+                  {isCustomComuna ? 'Seleccionar lista' : '+ Escribir manual'}
+                </button>
+              )}
+            </div>
+
+            {comunas.length > 0 && !isCustomComuna ? (
+              <select
+                className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                value={form.comuna}
+                onChange={(e) => setField('comuna', e.target.value)}
+                disabled={!form.parroquia}
+              >
+                <option value="" className="bg-slate-900">— Selecciona comuna —</option>
+                {comunas.map((co) => (
+                  <option key={co} value={co} className="bg-slate-900">{co}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                value={form.comuna}
+                onChange={(e) => setField('comuna', e.target.value)}
+                placeholder="Ej: Montañita, Olón, San Pedro..."
+                disabled={!form.parroquia}
+              />
+            )}
+          </div>
+
+          <div className="sm:col-span-2 lg:col-span-4">
             <label className="mb-1.5 block text-sm font-semibold text-slate-300">Dirección completa</label>
             <input
               className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -234,29 +356,31 @@ export function ProfileForm({ slug, initial, locale }: Props) {
           </div>
 
           {/* Coordenadas */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-300">Latitud</label>
-            <input
-              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              value={form.lat}
-              onChange={(e) => setField('lat', e.target.value)}
-              placeholder="-0.2295"
-              type="number"
-              step="any"
-            />
+          <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-300">Latitud</label>
+              <input
+                className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                value={form.lat}
+                onChange={(e) => setField('lat', e.target.value)}
+                placeholder="-0.2295"
+                type="number"
+                step="any"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-300">Longitud</label>
+              <input
+                className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                value={form.lng}
+                onChange={(e) => setField('lng', e.target.value)}
+                placeholder="-78.5243"
+                type="number"
+                step="any"
+              />
+            </div>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-300">Longitud</label>
-            <input
-              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              value={form.lng}
-              onChange={(e) => setField('lng', e.target.value)}
-              placeholder="-78.5243"
-              type="number"
-              step="any"
-            />
-          </div>
-          <div className="flex items-end">
+          <div className="lg:col-span-2 flex items-end">
             <button
               type="button"
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold py-2 px-4 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
@@ -273,7 +397,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
           </div>
 
           {form.lat && form.lng && (
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2 lg:col-span-4">
               <a
                 href={`https://www.google.com/maps?q=${form.lat},${form.lng}`}
                 target="_blank"

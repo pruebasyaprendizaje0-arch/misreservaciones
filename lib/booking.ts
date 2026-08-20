@@ -9,13 +9,14 @@ export const createBookingSchema = z.object({
   staffId: z.string().optional(),
   resourceId: z.string().optional(),
   startsAt: z.coerce.date(),
+  endsAt: z.coerce.date().optional(),
   customer: z.object({
     name: z.string().min(2).max(120),
-    email: z.string().email().optional(),
-    phone: z.string().min(5).max(40).optional(),
-    notes: z.string().max(2000).optional(),
+    email: z.string().email().optional().nullable().or(z.literal('')),
+    phone: z.string().min(5).max(40).optional().nullable().or(z.literal('')),
+    notes: z.string().max(2000).optional().nullable(),
   }),
-  notes: z.string().max(2000).optional(),
+  notes: z.string().max(2000).optional().nullable(),
   locale: z.enum(['es', 'en']).default('es'),
   source: z.string().default('web'),
 });
@@ -28,11 +29,6 @@ export type CreateBookingResult =
 
 /**
  * Creates a reservation atomically with a conflict check.
- * Uses a transaction + a server-side overlap query guarded by status filter
- * to prevent double-booking the same staff/resource.
- *
- * For HOSTAL, the full stay range is checked against overlapping reservations
- * on the same room.
  */
 export async function createBooking(
   dbUrl: string,
@@ -47,8 +43,9 @@ export async function createBooking(
   const service = await db.service.findUnique({ where: { id: data.serviceId } });
   if (!service || !service.active) return { ok: false, error: 'SERVICE_NOT_FOUND' };
 
-  const endsAt = addMinutes(data.startsAt, service.durationMin);
+  const endsAt = data.endsAt ? data.endsAt : addMinutes(data.startsAt, service.durationMin);
   const status: ReservationStatus = 'CONFIRMED';
+
 
   const result = (await db.$transaction(async (tx) => {
     const overlapping = await tx.reservation.findFirst({

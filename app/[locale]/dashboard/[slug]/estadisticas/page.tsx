@@ -25,14 +25,12 @@ export default async function StatsPage({
   const todayStart = startOfDay(now);
   const thirtyDaysAgo = subDays(todayStart, 29);
 
-  // Load all reservations in the last 30 days
   const reservations = await db.reservation.findMany({
     where: { startsAt: { gte: thirtyDaysAgo, lte: now } },
     include: { service: { select: { name: true } } },
     orderBy: { startsAt: 'asc' },
   });
 
-  // Build per-day counts for the last 30 days
   const days = eachDayOfInterval({ start: thirtyDaysAgo, end: todayStart });
   const dailyCounts = days.map((day) => {
     const dayStr = format(day, 'dd MMM', { locale: es });
@@ -43,13 +41,11 @@ export default async function StatsPage({
     return { date: dayStr, reservas: count };
   });
 
-  // Status breakdown
   const statusBreakdown = ['CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map((status) => ({
     status,
     count: reservations.filter((r) => r.status === status).length,
   })).filter((s) => s.count > 0);
 
-  // Top services
   const serviceMap = new Map<string, number>();
   for (const r of reservations) {
     const key = r.service.name;
@@ -60,7 +56,6 @@ export default async function StatsPage({
     .slice(0, 6)
     .map(([name, count]) => ({ name, count }));
 
-  // Summary stats
   const totalReservations = reservations.length;
   const completedCount = reservations.filter((r) => r.status === 'COMPLETED').length;
   const cancelledCount = reservations.filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW').length;
@@ -71,61 +66,62 @@ export default async function StatsPage({
   const [customersCount] = await Promise.all([db.customer.count()]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Estadísticas</h1>
-          <p className="text-sm text-slate-500 mt-1">{tenant.name} · Últimos 30 días</p>
-        </div>
-        <Link href={`/${locale}/dashboard/${slug}`} className="btn-secondary text-sm">
-          ← Volver al Panel
-        </Link>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: 'Total Reservas', value: totalReservations, icon: '📅', color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Completadas', value: completedCount, icon: '✅', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Canceladas', value: cancelledCount, icon: '❌', color: 'text-red-500', bg: 'bg-red-50' },
-          { label: 'Clientes', value: customersCount, icon: '👤', color: 'text-purple-600', bg: 'bg-purple-50' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${kpi.bg}`}>
-              {kpi.icon}
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{kpi.label}</p>
-              <p className={`text-3xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">📊 Estadísticas</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{tenant.name} · Últimos 30 días</p>
           </div>
-        ))}
-      </div>
-
-      {/* Tasa de completación */}
-      <div className="mt-6 bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-slate-700">Tasa de Completación</p>
-          <p className="text-lg font-extrabold text-slate-900">{conversionRate}%</p>
+          <Link
+            href={`/${locale}/dashboard/${slug}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm self-start sm:self-auto"
+          >
+            ← Volver al Panel
+          </Link>
         </div>
-        <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-          <div
-            className="h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
-            style={{ width: `${conversionRate}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-slate-400">
-          {completedCount} completadas de {totalReservations} reservas totales
-        </p>
-      </div>
 
-      {/* Charts (client component) */}
-      <StatsCharts
-        dailyCounts={dailyCounts}
-        statusBreakdown={statusBreakdown}
-        topServices={topServices}
-      />
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Total Reservas', value: totalReservations, icon: '📅', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/60' },
+            { label: 'Completadas', value: completedCount, icon: '✅', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/60' },
+            { label: 'Canceladas', value: cancelledCount, icon: '❌', color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/60' },
+            { label: 'Clientes', value: customersCount, icon: '👤', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/60' },
+          ].map((kpi) => (
+            <div key={kpi.label} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex items-center gap-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${kpi.bg}`}>
+                {kpi.icon}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{kpi.label}</p>
+                <p className={`text-3xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tasa de Completación</p>
+            <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{conversionRate}%</p>
+          </div>
+          <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div
+              className="h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+              style={{ width: `${conversionRate}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            {completedCount} completadas de {totalReservations} reservas totales
+          </p>
+        </div>
+
+        <StatsCharts
+          dailyCounts={dailyCounts}
+          statusBreakdown={statusBreakdown}
+          topServices={topServices}
+        />
+      </div>
     </div>
   );
 }

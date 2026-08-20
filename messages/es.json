@@ -64,8 +64,14 @@
     "noSlots": "No hay horarios disponibles para esa fecha.",
     "duration": "{minutes} min",
     "price": "Precio",
-    "people": "{count} personas"
+    "people": "{count} personas",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "back": "Atrás",
+    "loading": "Cargando...",
+    "search": "Buscar disponibilidad"
   },
+
   "dashboard": {
     "title": "Panel",
     "reservations": "Reservas",

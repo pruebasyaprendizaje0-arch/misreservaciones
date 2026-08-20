@@ -4,19 +4,18 @@ const globalForControl = globalThis as unknown as {
   prismaControl: PrismaClient | undefined;
 };
 
-function getSanitizedControlUrl(): string | undefined {
+function getControlUrl(): string {
   const url = process.env.DATABASE_URL_CONTROL;
-  if (!url) return undefined;
-  // Replace internal Coolify display hostname with the actual working Docker container hostname
-  return url.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  if (!url || url.includes('xf0a53c3wv9f69ro3wdtyds1')) {
+    return 'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public';
+  }
+  return url;
 }
-
-const sanitizedUrl = getSanitizedControlUrl();
 
 export const prismaControl =
   globalForControl.prismaControl ??
   new PrismaClient({
-    ...(sanitizedUrl ? { datasources: { db: { url: sanitizedUrl } } } : {}),
+    datasources: { db: { url: getControlUrl() } },
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 

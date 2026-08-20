@@ -24,13 +24,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'INVALID_DATE' }, { status: 400 });
   }
 
+  const checkOutStr = searchParams.get('checkOutDate') || searchParams.get('checkOut');
+  const checkOutDate = checkOutStr ? new Date(checkOutStr) : undefined;
+
   const slots = await computeSlots({
     dbUrl: ctx.dbUrl,
     serviceId,
     staffId,
     resourceId,
     date,
+    checkOutDate,
   });
+
 
   return NextResponse.json({ slots });
 }
