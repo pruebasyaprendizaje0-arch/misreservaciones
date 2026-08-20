@@ -12,7 +12,9 @@ const credentialsSchema = z.object({
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prismaControl),
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'miClaveSecretaSuperSegura2026',
   session: { strategy: 'jwt' },
+
   pages: {
     signIn: '/sign-in',
   },
