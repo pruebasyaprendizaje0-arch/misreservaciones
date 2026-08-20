@@ -5,11 +5,13 @@ import { auth } from '@/lib/auth';
 import { deleteTenant } from '@/lib/provisioning';
 import { invalidateTenantCache } from '@/lib/tenant-context';
 
-// Fields editable only by platform admins
 const adminPatchSchema = z.object({
   status: z.enum(['ACTIVE', 'SUSPENDED', 'ARCHIVED']).optional(),
   plan: z.enum(['FREE', 'PRO', 'BUSINESS']).optional(),
+  isTrial: z.boolean().optional(),
+  trialEndsAt: z.string().optional().nullable().transform((v) => (v ? new Date(v) : null)),
 });
+
 
 // Fields editable by the tenant owner (and admins)
 const ownerPatchSchema = z.object({

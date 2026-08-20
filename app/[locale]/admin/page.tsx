@@ -66,7 +66,7 @@ export default async function AdminPage({
       },
     }),
     prismaControl.auditLog.findMany({
-      take: 50,
+      take: 60,
       orderBy: { createdAt: 'desc' },
       include: {
         actor: {
@@ -77,29 +77,38 @@ export default async function AdminPage({
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
-      <div className="mx-auto max-w-6xl bg-slate-900 border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-indigo-950/20">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 border-b border-slate-800/80 pb-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl bg-slate-900 border border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-indigo-950/30 space-y-8">
+        {/* Header Superadmin */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-              <span>🛡️</span> Panel de Superusuario
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400 mb-2">
+              👑 Control Plane · Superadministrador
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+              <span>🛡️</span> Dashboard General de la Plataforma
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Administración global del control plane de la plataforma y de sus inquilinos.
+            <p className="text-xs text-slate-400 mt-1">
+              Monitoreo en tiempo real de todos los negocios, usuarios, ingresos estimados y auditoría del sistema.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <a
+              href={`/${locale}/directorio`}
+              className="rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2.5 text-xs font-bold text-slate-200 transition shadow-sm flex items-center gap-2"
+            >
+              🗺️ Directorio GEO
+            </a>
             <Link
               href={`/${locale}`}
-              className="rounded-lg bg-slate-800 border border-slate-700/80 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-extrabold text-white transition shadow-md flex items-center gap-2"
             >
-              🏠 App principal
+              🏠 App Principal
             </Link>
           </div>
         </div>
 
-        {/* Dashboard contents */}
+        {/* Dashboard Component */}
         <AdminDashboard
           locale={locale}
           initialTenants={tenants.map((t) => ({
@@ -109,8 +118,13 @@ export default async function AdminPage({
             industry: t.industry,
             status: t.status,
             plan: t.plan,
+            isTrial: t.isTrial ?? true,
+            trialEndsAt: t.trialEndsAt ? t.trialEndsAt.toISOString() : null,
             owner: t.owner,
             provincia: t.provincia,
+            canton: t.canton,
+            parroquia: t.parroquia,
+            comuna: t.comuna,
             createdAt: t.createdAt.toISOString(),
             logoUrl: t.logoUrl,
           }))}
