@@ -54,9 +54,10 @@ RUN adduser --system --uid 1001 nextjs
 # Copiar activos públicos y directorios requeridos
 COPY --from=builder /app/public ./public
 
-# Configurar el directorio de caché de Next.js
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Configurar el directorio de caché de Next.js y directorio de uploads
+RUN mkdir -p .next public/uploads
+RUN chown -R nextjs:nodejs .next public/uploads
+
 
 # Copiar la compilación standalone optimizada de Next.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

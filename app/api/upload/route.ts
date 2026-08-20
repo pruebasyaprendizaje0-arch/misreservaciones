@@ -27,27 +27,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El archivo excede el tamaño máximo de 5MB.' }, { status: 400 });
+    // Validate size (max 8MB)
+    if (file.size > 8 * 1024 * 1024) {
+      return NextResponse.json({ error: 'El archivo excede el tamaño máximo de 8MB.' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Ensure uploads folder exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
+    try {
+      // Ensure uploads folder exists
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      await mkdir(uploadsDir, { recursive: true });
 
-    // Generate unique filename
-    const ext = path.extname(file.name) || '.jpg';
-    const filename = `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
+      // Generate unique filename
+      const ext = path.extname(file.name) || '.jpg';
+      const filename = `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
 
-    await writeFile(filePath, buffer);
+      await writeFile(filePath, buffer);
 
-    const publicUrl = `/uploads/${filename}`;
-    return NextResponse.json({ ok: true, url: publicUrl });
+      const publicUrl = `/uploads/${filename}`;
+      return NextResponse.json({ ok: true, url: publicUrl });
+    } catch (fsErr) {
+      console.warn('[upload] File system write failed, returning base64 fallback:', fsErr);
+      const base64Data = buffer.toString('base64');
+      const dataUrl = `data:${file.type};base64,${base64Data}`;
+      return NextResponse.json({ ok: true, url: dataUrl });
+    }
   } catch (error) {
     console.error('Error al subir archivo:', error);
     return NextResponse.json({ error: 'Error interno al guardar la imagen.' }, { status: 500 });
