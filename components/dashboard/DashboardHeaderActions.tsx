@@ -18,7 +18,16 @@ export function DashboardHeaderActions({ slug, locale }: Props) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition cursor-pointer"
+        >
+          ← Volver atrás
+        </button>
+
         <ThemeToggle />
+
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -37,6 +46,7 @@ export function DashboardHeaderActions({ slug, locale }: Props) {
         >
           🏠 App principal
         </Link>
+
         <a
           href={`/${locale}/${slug}`}
           target="_blank"

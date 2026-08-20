@@ -67,7 +67,18 @@ export default async function TenantDashboard({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-6xl px-4 py-8">
+        {/* ── Header ─────────────────────────────────────────── */}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{tenant.name}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Panel de administración de tu negocio</p>
+          </div>
+          <DashboardHeaderActions slug={slug} locale={locale} />
+        </div>
+
         {/* ── 30-Day Free Trial Banner ────────────────────────────── */}
+
         {tenant.isTrial && tenant.trialEndsAt && (
           <div className="mt-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/90 dark:bg-emerald-950/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200 shadow-sm">
             <div className="flex items-center gap-3">
