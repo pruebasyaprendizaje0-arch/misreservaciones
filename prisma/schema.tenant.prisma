@@ -3,9 +3,11 @@
 // the new DB during provisioning.
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/tenant"
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/tenant"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
+
 
 datasource db {
   provider = "postgresql"

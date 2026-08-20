@@ -2,9 +2,11 @@
 // Stores platform users, tenants, subscriptions. Single shared DB.
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/control"
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/control"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
+
 
 datasource db {
   provider = "postgresql"
