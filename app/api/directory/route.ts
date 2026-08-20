@@ -64,10 +64,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'Error al cargar el directorio',
-        detail:
-          process.env.NODE_ENV !== 'production'
-            ? String(error)
-            : 'Revisa los logs del servidor',
+        detail: (error as Error)?.message || String(error),
       },
       { status: 500 }
     );
