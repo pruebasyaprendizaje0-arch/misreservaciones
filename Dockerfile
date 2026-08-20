@@ -30,8 +30,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Generar de forma explícita e independiente los esquemas de Prisma
-RUN pnpm prisma generate --schema=prisma/schema.control.prisma
-RUN pnpm prisma generate --schema=prisma/schema.tenant.prisma
+RUN pnpm exec prisma generate --schema=prisma/schema.control.prisma
+RUN pnpm exec prisma generate --schema=prisma/schema.tenant.prisma
+
 
 # Compilar la aplicación Next.js
 RUN pnpm build
