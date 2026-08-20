@@ -9,6 +9,10 @@ import {
   getComunasForParroquia,
 } from '@/lib/ecuador-geo';
 import { ImageUploader } from './ImageUploader';
+import { ThemeToggle } from './ThemeToggle';
+import { BlockDatesModal } from './BlockDatesModal';
+import { PricingRulesModal } from './PricingRulesModal';
+
 
 type TenantProfile = {
   name: string;
@@ -411,7 +415,51 @@ export function ProfileForm({ slug, initial, locale }: Props) {
         </div>
       </section>
 
+      {/* ── Apariencia y Tema Visual ── */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-3">
+        <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <span className="text-xl">🎨</span> Apariencia y Tema del Panel
+        </h2>
+        <p className="text-xs text-slate-400">
+          Cambia entre el modo claro y modo oscuro para personalizar la vista de tu panel de administración.
+        </p>
+        <div className="pt-2">
+          <ThemeToggle />
+        </div>
+      </section>
+
+      {/* ── Bloqueo de Fechas y Vacaciones ── */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span className="text-xl">🚫</span> Bloqueo de Fechas y Mantenimiento
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Inhabilita días específicos (vacaciones, cierres temporales, feriados) para evitar que recibas reservas esos días.
+            </p>
+          </div>
+          <BlockDatesModal slug={slug} />
+        </div>
+      </section>
+
+      {/* ── Reglas de Tarifas y Precios ── */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span className="text-xl">💲</span> Reglas de Tarifas & Precios Dinámicos
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Configura aumentos o descuentos automáticos para fines de semana, feriados o temporada alta.
+            </p>
+          </div>
+          <PricingRulesModal slug={slug} />
+        </div>
+      </section>
+
       {/* Actions */}
+
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
         <button
           type="submit"
