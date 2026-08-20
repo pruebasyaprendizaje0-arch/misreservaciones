@@ -1,13 +1,21 @@
 import { MetadataRoute } from 'next';
 import { prismaControl } from '@/lib/db/control';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://misreservaciones.com';
 
-  const tenants = await prismaControl.tenant.findMany({
-    where: { status: 'ACTIVE' },
-    select: { slug: true, updatedAt: true },
-  });
+  let tenants: { slug: string; updatedAt: Date }[] = [];
+  try {
+    tenants = await prismaControl.tenant.findMany({
+      where: { status: 'ACTIVE' },
+      select: { slug: true, updatedAt: true },
+    });
+  } catch (err) {
+    console.warn('[sitemap] Database unreachable during build time, returning static base sitemap.');
+  }
 
   const tenantUrls = tenants.flatMap((tenant) => [
     {
