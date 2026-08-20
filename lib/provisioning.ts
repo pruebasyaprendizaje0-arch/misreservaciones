@@ -217,12 +217,24 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   const admin = new PgClient({ connectionString: adminUrl });
   await admin.connect();
   try {
-    // Idempotent role/db creation
-    await admin.query(`CREATE ROLE "${role}" LOGIN PASSWORD '${password.replace(/'/g, "''")}'`);
-    await admin.query(`CREATE DATABASE "${dbName}" OWNER "${role}"`);
+    // Idempotent role creation
+
+    const checkRole = await admin.query(`SELECT 1 FROM pg_roles WHERE rolname = $1`, [role]);
+    if (checkRole.rowCount === 0) {
+      await admin.query(`CREATE ROLE "${role}" LOGIN PASSWORD '${password.replace(/'/g, "''")}'`);
+    } else {
+      await admin.query(`ALTER ROLE "${role}" WITH LOGIN PASSWORD '${password.replace(/'/g, "''")}'`);
+    }
+
+    // Idempotent database creation
+    const checkDb = await admin.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
+    if (checkDb.rowCount === 0) {
+      await admin.query(`CREATE DATABASE "${dbName}" OWNER "${role}"`);
+    }
   } finally {
     await admin.end();
   }
+
 
   // Connect to the newly created database as admin to execute DDL
   const tenantAdminUrl = adminUrl.replace(/\/[^/]+(\?.*)?$/, `/${dbName}$1`);
@@ -230,7 +242,11 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   await tenantClient.connect();
   try {
     await tenantClient.query(TENANT_DDL);
+    await tenantClient.query(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${role}"`);
+    await tenantClient.query(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${role}"`);
+    await tenantClient.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${role}"`);
   } finally {
+
     await tenantClient.end();
   }
 
