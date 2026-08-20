@@ -67,16 +67,33 @@ export default async function TenantDashboard({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* ── Header ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{tenant.name}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Panel de administración de tu negocio</p>
+        {/* ── 30-Day Free Trial Banner ────────────────────────────── */}
+        {tenant.isTrial && tenant.trialEndsAt && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/90 dark:bg-emerald-950/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎁</span>
+              <div>
+                <p className="font-bold text-sm">
+                  Prueba Gratuita de Demo Activa (30 Días)
+                </p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                  Quedan {Math.max(0, Math.ceil((new Date(tenant.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} días restantes de acceso completo sin comisiones.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://wa.me/593994916012?text=Hola,%20quisiera%20activar%20mi%20Plan%20Pro%20para%20mi%20negocio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 transition shadow-sm shrink-0"
+            >
+              🚀 Activar Plan Pro
+            </a>
           </div>
-          <DashboardHeaderActions slug={slug} locale={locale} />
-        </div>
+        )}
 
         {/* ── Quick Nav ──────────────────────────────────────── */}
+
         <nav className="mt-6 flex flex-wrap gap-2">
           {[
             { href: `/${locale}/dashboard/${slug}?view=calendar`, label: tenant.industry === 'MEDICO' ? '📅 Consultas' : tenant.industry === 'HOSTAL' ? '📅 Estancias' : '📅 Reservas' },

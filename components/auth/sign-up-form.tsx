@@ -114,9 +114,10 @@ export function SignUpForm() {
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? t('loading') : t('signUp')}
+      <button type="submit" className="btn-primary w-full py-3.5 font-extrabold text-sm rounded-xl shadow-md transition hover:bg-indigo-700" disabled={loading}>
+        {loading ? t('loading') : '🚀 Comenzar Prueba Gratuita (30 Días)'}
       </button>
+
     </form>
   );
 }

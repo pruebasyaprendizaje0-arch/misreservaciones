@@ -234,6 +234,9 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
     await tenantClient.end();
   }
 
+  // 30 days free trial calculation
+  const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
   // Insert into control DB
   const tenant = await prismaControl.tenant.create({
     data: {
@@ -242,10 +245,12 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
       industry: input.industry,
       dbUrl,
       ownerId: input.ownerId,
+      isTrial: true,
+      trialEndsAt,
     },
   });
 
-  // Seed default settings via the tenant Prisma client
+  // Seed default settings and demo data via the tenant Prisma client
   const { getTenantClient } = await import('./db/tenant');
   const tenantDb = getTenantClient(dbUrl);
   await tenantDb.setting.createMany({
@@ -264,6 +269,56 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
       { key: 'cancellation_hours', value: 24 },
     ],
   });
+
+  // Seed initial demo service & staff for immediate testing
+  try {
+    const demoServiceNames: Record<string, { name: string; desc: string; price: number; duration: number }> = {
+      HOSTAL: { name: 'Habitación Matrimonial (Demo)', desc: 'Cama matrimonial, aire acondicionado, baño privado y vista al jardín.', price: 3500, duration: 1440 },
+      MASAJE: { name: 'Masaje Terapéutico Relajante (Demo)', desc: 'Sesión de relajación muscular completa de 60 minutos.', price: 3000, duration: 60 },
+      PELUQUERIA: { name: 'Corte de Cabello & Barba (Demo)', desc: 'Servicio completo de estilización y corte.', price: 1500, duration: 45 },
+      MEDICO: { name: 'Consulta Médica General (Demo)', desc: 'Evaluación de salud integral y prescripción.', price: 2500, duration: 30 },
+    };
+
+    const sInfo = demoServiceNames[input.industry] || demoServiceNames.HOSTAL;
+    const demoService = await tenantDb.service.create({
+      data: {
+        industry: input.industry,
+        name: sInfo.name,
+        description: sInfo.desc,
+        durationMin: sInfo.duration,
+        priceCents: sInfo.price,
+        currency: 'USD',
+        active: true,
+      },
+    });
+
+    const demoStaff = await tenantDb.staff.create({
+      data: {
+        name: 'Personal de Atención (Demo)',
+        role: 'Encargado Principal',
+        active: true,
+      },
+    });
+
+    await tenantDb.staffService.create({
+      data: {
+        staffId: demoStaff.id,
+        serviceId: demoService.id,
+      },
+    });
+
+    if (input.industry === 'HOSTAL') {
+      await tenantDb.resource.createMany({
+        data: [
+          { type: 'HABITACION', name: 'Habitación 101 - Matrimonial', capacity: 2, active: true },
+          { type: 'HABITACION', name: 'Habitación 102 - Doble Twin', capacity: 3, active: true },
+        ],
+      });
+    }
+  } catch (seedErr) {
+    console.warn('[provisionTenant] Demo seed non-critical error:', seedErr);
+  }
+
 
   const rootDomain = process.env.ROOT_DOMAIN || 'ubicame.cc';
   return {

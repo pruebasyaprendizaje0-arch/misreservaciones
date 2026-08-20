@@ -94,11 +94,14 @@ model Tenant {
   dbUrl       String       // postgresql://user:pass@host:port/mr_tenant_<slug>
   status      TenantStatus @default(ACTIVE)
   plan        TenantPlan   @default(FREE)
+  isTrial     Boolean      @default(true)
+  trialEndsAt DateTime?
   ownerId     String
   owner       User         @relation("TenantOwner", fields: [ownerId], references: [id])
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
 
   // Location fields for Ecuador directory
   provincia   String?
