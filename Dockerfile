@@ -15,10 +15,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* package-lock.json* .npmrc* ./
 COPY prisma ./prisma
 
-# Instalar dependencias con soporte para pnpm-lock o fallback de package-lock
-RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then pnpm install; \
-    else pnpm install; fi
+# Instalar dependencias (incluyendo devDependencies para compilación Next.js y TypeScript)
+RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile --production=false; \
+    elif [ -f package-lock.json ]; then pnpm install --production=false; \
+    else pnpm install --production=false; fi
 
 # --- 2. CONSTRUCCIÓN DE LA APLICACIÓN ---
 FROM base AS builder
