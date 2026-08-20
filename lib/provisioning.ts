@@ -37,14 +37,12 @@ function generatePassword(): string {
 }
 
 function getAdminUrl(): string {
-  const url =
+  return (
     process.env.POSTGRES_ADMIN_URL ||
     process.env.DATABASE_URL_CONTROL ||
     process.env.DATABASE_URL ||
-    'postgresql://postgres:postgres@xf0a53c3wv9f69ro3wdtyds1:5432/postgres';
-
-  // Fix internal Coolify hostname if present
-  return url.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+    'postgresql://postgres:postgres@localhost:5432/postgres'
+  );
 }
 
 function buildDbUrl(slug: string, password: string): string {

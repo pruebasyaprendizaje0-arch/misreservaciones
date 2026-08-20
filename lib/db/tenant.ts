@@ -24,7 +24,7 @@ function getControlHost(): string | null {
 }
 
 export function getTenantClient(dbUrl: string): TenantClient {
-  let sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  let sanitized = dbUrl;
   const controlHost = getControlHost();
 
   if (controlHost && process.env.NODE_ENV === 'production') {
@@ -32,8 +32,7 @@ export function getTenantClient(dbUrl: string): TenantClient {
       const parsed = new URL(sanitized);
       if (
         parsed.hostname === 'localhost' ||
-        parsed.hostname === '127.0.0.1' ||
-        parsed.hostname.includes('postgresql-database')
+        parsed.hostname === '127.0.0.1'
       ) {
         parsed.hostname = controlHost;
         sanitized = parsed.toString();
@@ -63,7 +62,7 @@ export function getTenantClient(dbUrl: string): TenantClient {
 }
 
 export function evictTenantClient(dbUrl: string): void {
-  let sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  let sanitized = dbUrl;
   const controlHost = getControlHost();
 
   if (controlHost && process.env.NODE_ENV === 'production') {
@@ -71,8 +70,7 @@ export function evictTenantClient(dbUrl: string): void {
       const parsed = new URL(sanitized);
       if (
         parsed.hostname === 'localhost' ||
-        parsed.hostname === '127.0.0.1' ||
-        parsed.hostname.includes('postgresql-database')
+        parsed.hostname === '127.0.0.1'
       ) {
         parsed.hostname = controlHost;
         sanitized = parsed.toString();

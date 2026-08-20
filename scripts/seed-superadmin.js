@@ -2,12 +2,11 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('../node_modules/.prisma/control');
 
 function getControlUrl() {
-  const rawUrl =
+  return (
     process.env.DATABASE_URL_CONTROL ||
     process.env.DATABASE_URL ||
-    'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public';
-
-  return rawUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+    'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public'
+  );
 }
 
 const prismaControl = new PrismaClient({

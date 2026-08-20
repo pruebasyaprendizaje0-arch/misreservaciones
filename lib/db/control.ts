@@ -5,13 +5,11 @@ const globalForControl = globalThis as unknown as {
 };
 
 function getControlUrl(): string {
-  const rawUrl =
+  return (
     process.env.DATABASE_URL_CONTROL ||
     process.env.DATABASE_URL ||
-    'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public';
-
-  // Fix internal Coolify hostname if present
-  return rawUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+    'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public'
+  );
 }
 
 export const prismaControl =
