@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getTenantContext } from '@/lib/tenant-context';
 import { getTenantClient } from '@/lib/db/tenant';
 import { getTranslations } from 'next-intl/server';
@@ -18,6 +19,75 @@ const INDUSTRY_HERO: Record<string, { gradient: string; tag: string }> = {
   PELUQUERIA: { gradient: 'from-purple-600 to-pink-600', tag: 'Estilo y confianza' },
   MEDICO: { gradient: 'from-teal-600 to-emerald-700', tag: 'Tu salud, primero' },
 };
+
+// ─── Dynamic SEO / GEO / AEO Metadata Generation ───
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; locale: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const ctx = await getTenantContext(slug);
+  if (!ctx.tenant) return {};
+
+  const tenant = ctx.tenant;
+  const industryLabel =
+    tenant.industry === 'HOSTAL'
+      ? 'Hostal'
+      : tenant.industry === 'MASAJE'
+      ? 'Masajes'
+      : tenant.industry === 'PELUQUERIA'
+      ? 'Peluquería'
+      : 'Centro Médico';
+
+  const locationParts = [
+    tenant.comuna ? `Comuna ${tenant.comuna}` : null,
+    tenant.parroquia,
+    tenant.canton,
+    tenant.provincia,
+    'Ecuador',
+  ].filter(Boolean);
+  const locationStr = locationParts.join(', ');
+
+  const title = `${tenant.name} - ${industryLabel} en ${tenant.comuna || tenant.parroquia || 'Santa Elena'} | Reservas Directas`;
+  const description =
+    tenant.description ||
+    `${tenant.name} es un ${industryLabel.toLowerCase()} ubicado en ${locationStr}. Consulta habitaciones disponibles, tarifas y reserva tu estadía online en tiempo real sin intermediarios.`;
+
+  const images = [tenant.coverUrl, tenant.logoUrl].filter(Boolean) as string[];
+
+  return {
+    title,
+    description,
+    keywords: [
+      tenant.name,
+      industryLabel,
+      `${industryLabel} en ${tenant.comuna || 'Olón'}`,
+      `${industryLabel} en ${tenant.parroquia || 'Manglaralto'}`,
+      `${industryLabel} en ${tenant.canton || 'Santa Elena'}`,
+      'reservas directas',
+      'alojamiento santa elena',
+      'hostal en ecuador',
+      'reserva online',
+    ],
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      locale: locale === 'es' ? 'es_EC' : 'en_US',
+      images: images.length > 0 ? images.map((url) => ({ url })) : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: images.length > 0 ? images : undefined,
+    },
+    alternates: {
+      canonical: `https://${slug}.misreservaciones.com/${locale}`,
+    },
+  };
+}
 
 export default async function TenantHome({
   params,
@@ -81,9 +151,83 @@ export default async function TenantHome({
       ? `https://www.google.com/maps?q=${tenant.lat},${tenant.lng}`
       : `https://www.google.com/maps?q=${encodeURIComponent(`${tenant.name}, ${fullAddress}`)}`;
 
+  // ─── GEO & AEO JSON-LD Schema ───
+  const schemaType = isHostal ? 'LodgingBusiness' : 'LocalBusiness';
+  const businessSchema = {
+    '@context': 'https://schema.org',
+    '@type': schemaType,
+    name: tenant.name,
+    description: tenant.description || `${tenant.name} en ${fullAddress}`,
+    url: `https://${slug}.misreservaciones.com/${locale}`,
+    telephone: tenant.phone || undefined,
+    image: [tenant.coverUrl, tenant.logoUrl].filter(Boolean),
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: tenant.address || undefined,
+      addressLocality: tenant.comuna || tenant.parroquia || undefined,
+      addressRegion: tenant.provincia || undefined,
+      addressCountry: 'EC',
+    },
+    ...(tenant.lat && tenant.lng
+      ? {
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: tenant.lat,
+            longitude: tenant.lng,
+          },
+        }
+      : {}),
+    hasMap: mapUrl,
+    priceRange: '$$',
+  };
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: `¿Dónde está ubicado ${tenant.name}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `${tenant.name} está ubicado en ${fullAddress}. Puedes consultar su ubicación en el mapa interactivo.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: `¿Cómo hacer una reserva directa en ${tenant.name}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Puedes realizar tu reserva directa online sin comisiones seleccionando la fecha deseada en la página web oficial.`,
+        },
+      },
+      ...(isHostal
+        ? [
+            {
+              '@type': 'Question',
+              name: `¿Cuáles son los horarios de Check-in y Check-out en ${tenant.name}?`,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: `El horario de Check-in es a partir de las 12:00 PM y el Check-out es hasta las 12:00 PM.`,
+              },
+            },
+          ]
+        : []),
+    ],
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
+      {/* JSON-LD Structured Data scripts for Search Engines & AI Assistants */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* ─── Hero Banner ─── */}
       <section className={`relative overflow-hidden bg-gradient-to-br ${hero.gradient} text-white min-h-[400px]`}>
         {tenant.coverUrl ? (
