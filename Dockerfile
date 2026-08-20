@@ -74,7 +74,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modul
 COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
+# Declarar volumen persistente para archivos subidos (logos, portadas, multimedia)
+VOLUME ["/app/public/uploads"]
+
 USER nextjs
+
 
 EXPOSE 3000
 
