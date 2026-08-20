@@ -32,20 +32,31 @@ export default async function TenantDashboard({
   const startRange = addDays(todayStart, -30);
   const endRange = addDays(todayStart, 90);
 
-  const [today, calendarReservations, servicesCount, customersCount] = await Promise.all([
-    db.reservation.findMany({
-      where: { startsAt: { gte: todayStart, lte: todayEnd } },
-      orderBy: { startsAt: 'asc' },
-      include: { customer: true, service: true, resource: true, staff: true },
-    }),
-    db.reservation.findMany({
-      where: { startsAt: { gte: startRange, lte: endRange } },
-      orderBy: { startsAt: 'asc' },
-      include: { customer: true, service: true, resource: true, staff: true },
-    }),
-    db.service.count({ where: { active: true } }),
-    db.customer.count(),
-  ]);
+  let today: any[] = [];
+  let calendarReservations: any[] = [];
+  let servicesCount = 0;
+  let customersCount = 0;
+
+  try {
+    const db = getTenantClient(tenant.dbUrl);
+    [today, calendarReservations, servicesCount, customersCount] = await Promise.all([
+      db.reservation.findMany({
+        where: { startsAt: { gte: todayStart, lte: todayEnd } },
+        orderBy: { startsAt: 'asc' },
+        include: { customer: true, service: true, resource: true, staff: true },
+      }),
+      db.reservation.findMany({
+        where: { startsAt: { gte: startRange, lte: endRange } },
+        orderBy: { startsAt: 'asc' },
+        include: { customer: true, service: true, resource: true, staff: true },
+      }),
+      db.service.count({ where: { active: true } }),
+      db.customer.count(),
+    ]);
+  } catch (err) {
+    console.error(`[DashboardPage] Warning: Could not fetch DB data for ${slug}:`, err);
+  }
+
 
   const events = calendarReservations.map((r: any) => ({
     id: r.id,

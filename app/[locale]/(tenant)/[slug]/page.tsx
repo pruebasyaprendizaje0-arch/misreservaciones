@@ -105,15 +105,24 @@ export default async function TenantHome({
   const t = await getTranslations();
   const ti = await getTranslations('industries');
 
-  const db = getTenantClient(ctx.dbUrl!);
-  const [services, staffList, resources] = await Promise.all([
-    db.service.findMany({
-      where: { active: true },
-      orderBy: { createdAt: 'asc' },
-    }),
-    db.staff.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
-    db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
-  ]);
+  let services: any[] = [];
+  let staffList: any[] = [];
+  let resources: any[] = [];
+
+  try {
+    const db = getTenantClient(ctx.dbUrl!);
+    [services, staffList, resources] = await Promise.all([
+      db.service.findMany({
+        where: { active: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      db.staff.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
+      db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
+    ]);
+  } catch (err) {
+    console.error(`[TenantHome] Warning: Could not fetch DB data for ${slug}:`, err);
+  }
+
 
   const tenant = ctx.tenant;
   const industry = tenant.industry;

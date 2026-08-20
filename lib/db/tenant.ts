@@ -12,13 +12,41 @@ if (!globalForTenant.tenantCache) {
 
 const cache = globalForTenant.tenantCache;
 
+function getControlHost(): string | null {
+  const controlUrl = process.env.DATABASE_URL_CONTROL || process.env.DATABASE_URL;
+  if (!controlUrl) return null;
+  try {
+    const parsed = new URL(controlUrl);
+    return parsed.hostname;
+  } catch {
+    return null;
+  }
+}
+
 export function getTenantClient(dbUrl: string): TenantClient {
-  // Sanitize internal Coolify display hostname
-  const sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  let sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  const controlHost = getControlHost();
+
+  if (controlHost && process.env.NODE_ENV === 'production') {
+    try {
+      const parsed = new URL(sanitized);
+      if (
+        parsed.hostname === 'localhost' ||
+        parsed.hostname === '127.0.0.1' ||
+        parsed.hostname.includes('postgresql-database')
+      ) {
+        parsed.hostname = controlHost;
+        sanitized = parsed.toString();
+      }
+    } catch {
+      // Keep sanitized if parsing fails
+    }
+  }
+
   const existing = cache.get(sanitized);
   if (existing) return existing;
 
-  // Optimize pool size per tenant to prevent connection exhaustion
+  // Optimize connection pool size per tenant to prevent exhaustion
   let url = sanitized;
   if (!url.includes('connection_limit')) {
     const separator = url.includes('?') ? '&' : '?';
@@ -35,7 +63,23 @@ export function getTenantClient(dbUrl: string): TenantClient {
 }
 
 export function evictTenantClient(dbUrl: string): void {
-  const sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  let sanitized = dbUrl.replace(/postgresql-database-xf0a53c3wv/g, 'xf0a53c3wv9f69ro3wdtyds1');
+  const controlHost = getControlHost();
+
+  if (controlHost && process.env.NODE_ENV === 'production') {
+    try {
+      const parsed = new URL(sanitized);
+      if (
+        parsed.hostname === 'localhost' ||
+        parsed.hostname === '127.0.0.1' ||
+        parsed.hostname.includes('postgresql-database')
+      ) {
+        parsed.hostname = controlHost;
+        sanitized = parsed.toString();
+      }
+    } catch {}
+  }
+
   const client = cache.get(sanitized);
   if (client) {
     void client.$disconnect();
