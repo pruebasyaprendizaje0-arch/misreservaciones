@@ -1,14 +1,89 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { BusinessDirectory } from '@/components/directory/BusinessDirectory';
 import { FullPageBackgroundVideo } from '@/components/FullPageBackgroundVideo';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isEs = locale === 'es';
+
+  const title = isEs
+    ? 'misreservaciones | Sistema de Reservas Online para Hostales y Negocios en Ecuador'
+    : 'misreservaciones | Online Booking System for Hostels and Businesses in Ecuador';
+
+  const description = isEs
+    ? 'Plataforma multi-tenant de reservas en línea para hostales, masajes, peluquerías y consultorios médicos en Ecuador. Reserva sin comisiones en Olón, Montañita, Santa Elena, Quito y Guayaquil.'
+    : 'Multi-tenant online booking platform for hostels, massage spas, salons, and medical clinics in Ecuador. Direct commission-free bookings.';
+
+  return {
+    title,
+    description,
+    keywords: [
+      'reservas hostales ecuador',
+      'sistema de reservaciones',
+      'hostales olon',
+      'hostales montañita',
+      'alojamiento santa elena',
+      'reserva online ecuador',
+    ],
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      locale: isEs ? 'es_EC' : 'en_US',
+    },
+    alternates: {
+      canonical: `https://misreservaciones.com/${locale}`,
+    },
+  };
+}
 
 export default async function LandingPage() {
   const t = await getTranslations();
   const locale = await getLocale();
 
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'misreservaciones',
+    url: `https://misreservaciones.com/${locale}`,
+    logo: 'https://misreservaciones.com/logo.png',
+    description:
+      'Plataforma líder de reservas directas en línea para hostales y negocios en Ecuador.',
+    areaServed: {
+      '@type': 'Country',
+      name: 'Ecuador',
+    },
+  };
+
+  const webSiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'misreservaciones',
+    url: `https://misreservaciones.com/${locale}`,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `https://misreservaciones.com/${locale}/directorio?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <div className="relative min-h-screen text-slate-100 overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }}
+      />
+
       {/* ── Fixed Full-Page Parallax Background Video ── */}
       <FullPageBackgroundVideo />
 
@@ -37,12 +112,12 @@ export default async function LandingPage() {
               >
                 🏪 Registra tu negocio gratis
               </Link>
-              <a
-                href="#directorio"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/15"
+              <Link
+                href={`/${locale}/directorio`}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20"
               >
-                🔍 Buscar negocios ↓
-              </a>
+                🔍 Explorar Directorio Completo →
+              </Link>
             </div>
           </div>
 
@@ -85,17 +160,24 @@ export default async function LandingPage() {
       {/* ── Directory ───────────────────────────────── */}
       <section id="directorio" className="bg-transparent">
         <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="mb-8">
-            <h2 className="text-3xl font-extrabold text-white">
-              Directorio de Negocios
-              <span className="ml-2 text-indigo-400">🗺️</span>
-            </h2>
-            <p className="mt-2 text-slate-300 max-w-xl">
-              Filtra por provincia, cantón y parroquia para encontrar el negocio más cercano a ti.
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-extrabold text-white">
+                Directorio de Negocios
+                <span className="ml-2 text-indigo-400">🗺️</span>
+              </h2>
+              <p className="mt-2 text-slate-300 max-w-xl">
+                Filtra por provincia, cantón y parroquia para encontrar el negocio más cercano a ti.
+              </p>
+            </div>
+            <Link
+              href={`/${locale}/directorio`}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition shadow-md shrink-0"
+            >
+              🔍 Ver Directorio Avanzado →
+            </Link>
           </div>
 
-          {/* BusinessDirectory handles its own card container */}
           <BusinessDirectory locale={locale} />
         </div>
       </section>
