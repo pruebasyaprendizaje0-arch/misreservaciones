@@ -37,10 +37,24 @@ function generatePassword(): string {
 }
 
 function getAdminUrl(): string {
+  const rawAdmin = process.env.POSTGRES_ADMIN_URL;
+  const controlUrl = process.env.DATABASE_URL_CONTROL || process.env.DATABASE_URL;
+
+  // Auto-heal: If POSTGRES_ADMIN_URL is missing or contains placeholder 'INTERNAL_HOST',
+  // derive the host and credentials from DATABASE_URL_CONTROL
+  if (!rawAdmin || rawAdmin.includes('INTERNAL_HOST')) {
+    if (controlUrl && !controlUrl.includes('INTERNAL_HOST')) {
+      try {
+        const parsed = new URL(controlUrl);
+        parsed.pathname = '/postgres';
+        return parsed.toString();
+      } catch {}
+    }
+  }
+
   return (
-    process.env.POSTGRES_ADMIN_URL ||
-    process.env.DATABASE_URL_CONTROL ||
-    process.env.DATABASE_URL ||
+    rawAdmin ||
+    controlUrl ||
     'postgresql://postgres:postgres@localhost:5432/postgres'
   );
 }
