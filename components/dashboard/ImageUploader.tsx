@@ -24,10 +24,12 @@ type MultiProps = {
 type Props = SingleProps | MultiProps;
 
 export function ImageUploader(props: Props) {
-  const { label, placeholder = 'Subir imagen', aspectRatio = 'video' } = props;
+  const { label, placeholder = 'Subir o ingresar imagen', aspectRatio = 'video' } = props;
   const maxFiles = props.multiple ? props.maxFiles : 1;
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [customUrl, setCustomUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const aspectClass =
@@ -89,6 +91,23 @@ export function ImageUploader(props: Props) {
     }
   }
 
+  function handleAddUrl() {
+    if (!customUrl.trim()) return;
+    const url = customUrl.trim();
+    if (props.multiple) {
+      if (props.maxFiles && props.value.length >= props.maxFiles) {
+        setError(`Máximo ${props.maxFiles} fotos permitidas.`);
+        return;
+      }
+      props.onChange([...props.value, url]);
+    } else {
+      props.onChange(url);
+    }
+    setCustomUrl('');
+    setShowUrlInput(false);
+    setError(null);
+  }
+
   function handleRemoveSingle() {
     if (!props.multiple) props.onChange('');
   }
@@ -100,9 +119,10 @@ export function ImageUploader(props: Props) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {label && <label className="block text-sm font-semibold text-slate-300">{label}</label>}
 
+      {/* Input de archivo / cámara oculto */}
       <input
         ref={fileInputRef}
         type="file"
@@ -113,88 +133,177 @@ export function ImageUploader(props: Props) {
       />
 
       {!props.multiple ? (
-        // ── Single Image Mode (Logo or Cover) ──────────────────────
-        <div className="flex items-center gap-4">
+        // ── Single Image Mode (Logo / Cover / Room Single Photo) ────────
+        <div className="space-y-3">
           {props.value ? (
             <div className={`relative rounded-xl overflow-hidden border border-slate-700 bg-slate-900 group ${aspectClass}`}>
               <img src={props.value} alt="Uploaded" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+              <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity p-2">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow"
+                  className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow flex items-center gap-1"
+                  title="Cambiar foto / Tomar otra"
                 >
-                  ✏️ Cambiar
+                  📷 Cambiar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold shadow flex items-center gap-1"
+                  title="Editar por URL web"
+                >
+                  🔗 URL
                 </button>
                 <button
                   type="button"
                   onClick={handleRemoveSingle}
-                  className="px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow"
+                  className="px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow"
+                  title="Eliminar foto"
                 >
                   🗑️
                 </button>
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-4 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer ${aspectClass}`}
-            >
-              {uploading ? (
-                <span className="text-xs font-semibold animate-pulse">Subiendo...</span>
-              ) : (
-                <>
-                  <span className="text-2xl mb-1">📷</span>
-                  <span className="text-xs font-semibold text-center">{placeholder}</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      ) : (
-        // ── Multi Image Mode (Gallery / Common Areas / Room Photos) ─
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-3">
-            {props.value.map((url, idx) => (
-              <div key={url + idx} className="relative w-36 h-28 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 group">
-                <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveMulti(idx)}
-                  className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white text-xs p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Eliminar foto"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-
-            {(!props.maxFiles || props.value.length < props.maxFiles) && (
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="w-36 h-28 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-3 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer"
+                className={`border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-3 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer ${aspectClass}`}
               >
                 {uploading ? (
                   <span className="text-xs font-semibold animate-pulse">Subiendo...</span>
                 ) : (
                   <>
-                    <span className="text-2xl mb-1">🖼️</span>
-                    <span className="text-xs font-semibold text-center">
-                      + Agregar fotos {props.maxFiles ? `(${props.value.length}/${props.maxFiles})` : ''}
-                    </span>
+                    <span className="text-2xl mb-1">📷</span>
+                    <span className="text-xs font-semibold text-center">{placeholder}</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5">(Cámara o Galería)</span>
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowUrlInput(!showUrlInput)}
+                className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5"
+              >
+                <span>🔗</span>
+                <span>Pegar URL web</span>
+              </button>
+            </div>
+          )}
+
+          {/* Formulario desplegable para pegar URL web */}
+          {showUrlInput && (
+            <div className="flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-slate-900 p-2.5 text-xs max-w-md shadow-lg">
+              <input
+                type="url"
+                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                placeholder="https://ejemplo.com/mi-imagen.jpg"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleAddUrl}
+                className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 transition shrink-0"
+              >
+                Guardar URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUrlInput(false)}
+                className="text-slate-400 hover:text-white px-1 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        // ── Multi Image Mode (Gallery / Common Areas max 3 photos) ─────
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            {props.value.map((url, idx) => (
+              <div key={url + idx} className="relative w-36 h-28 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 group">
+                <img src={url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMulti(idx)}
+                    className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow"
+                    title="Eliminar foto"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(!props.maxFiles || props.value.length < props.maxFiles) && (
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-36 h-28 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-3 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  {uploading ? (
+                    <span className="text-xs font-semibold animate-pulse">Subiendo...</span>
+                  ) : (
+                    <>
+                      <span className="text-2xl mb-1">📷</span>
+                      <span className="text-xs font-semibold text-center">
+                        + Foto {props.maxFiles ? `(${props.value.length}/${props.maxFiles})` : ''}
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-0.5">Cámara / Archivo</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="w-36 text-center py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 hover:text-white transition"
+                >
+                  🔗 Pegar URL web
+                </button>
+              </div>
             )}
           </div>
+
+          {/* Formulario desplegable para pegar URL web */}
+          {showUrlInput && (
+            <div className="flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-slate-900 p-2.5 text-xs max-w-md shadow-lg">
+              <input
+                type="url"
+                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                placeholder="https://ejemplo.com/foto-area-comun.jpg"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleAddUrl}
+                className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 transition shrink-0"
+              >
+                Agregar URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUrlInput(false)}
+                className="text-slate-400 hover:text-white px-1 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {error && <p className="text-xs font-semibold text-red-400 mt-1">⚠ {error}</p>}
+      {error && <p className="text-xs font-semibold text-rose-400 mt-1">⚠ {error}</p>}
     </div>
   );
 }
