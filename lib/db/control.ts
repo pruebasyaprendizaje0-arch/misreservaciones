@@ -31,7 +31,7 @@ export async function ensureControlSchema(): Promise<void> {
     await prismaControl.$executeRawUnsafe(`
       DO $$
       BEGIN
-        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Tenant') THEN
+        BEGIN
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
@@ -42,7 +42,22 @@ export async function ensureControlSchema(): Promise<void> {
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "description" TEXT;
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "logoUrl" TEXT;
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "coverUrl" TEXT;
-        END IF;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+
+        BEGIN
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS comuna TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS provincia TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS canton TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS parroquia TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS phone TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS description TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS logoUrl TEXT;
+          ALTER TABLE tenant ADD COLUMN IF NOT EXISTS coverUrl TEXT;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
       END $$;
     `);
     schemaEnsured = true;

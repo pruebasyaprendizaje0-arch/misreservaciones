@@ -4,9 +4,11 @@
 set -e
 
 echo "[entrypoint] Sincronizando esquema de la BD de control de producción (db push)..."
-node node_modules/.bin/prisma db push --schema=prisma/schema.control.prisma --accept-data-loss --skip-generate || {
-  echo "[entrypoint] ADVERTENCIA: prisma db push no requirió cambios o ya estaba actualizado."
-}
+if [ -f node_modules/prisma/build/index.js ]; then
+  node node_modules/prisma/build/index.js db push --schema=prisma/schema.control.prisma --accept-data-loss --skip-generate
+elif [ -f node_modules/.bin/prisma ]; then
+  node node_modules/.bin/prisma db push --schema=prisma/schema.control.prisma --accept-data-loss --skip-generate
+fi
 
 echo "[entrypoint] Configurando usuario Superadministrador..."
 node scripts/seed-superadmin.js || {
