@@ -13,6 +13,7 @@ type SingleProps = {
 
 type MultiProps = {
   multiple: true;
+  maxFiles?: number;
   value: string[];
   onChange: (urls: string[]) => void;
   label?: string;
@@ -24,6 +25,7 @@ type Props = SingleProps | MultiProps;
 
 export function ImageUploader(props: Props) {
   const { label, placeholder = 'Subir imagen', aspectRatio = 'video' } = props;
+  const maxFiles = props.multiple ? props.maxFiles : 1;
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -44,8 +46,16 @@ export function ImageUploader(props: Props) {
 
     try {
       if (props.multiple) {
+        const remainingSlots = props.maxFiles ? props.maxFiles - props.value.length : files.length;
+        if (remainingSlots <= 0) {
+          setError(`Máximo ${props.maxFiles} fotos permitidas.`);
+          setUploading(false);
+          return;
+        }
+
+        const countToUpload = Math.min(files.length, remainingSlots);
         const uploadedUrls: string[] = [];
-        for (let i = 0; i < files.length; i++) {
+        for (let i = 0; i < countToUpload; i++) {
           const file = files[i];
           const formData = new FormData();
           formData.append('file', file);
@@ -57,7 +67,8 @@ export function ImageUploader(props: Props) {
             throw new Error(data.error || 'Error al subir la imagen');
           }
         }
-        props.onChange([...props.value, ...uploadedUrls]);
+        const updated = [...props.value, ...uploadedUrls];
+        props.onChange(props.maxFiles ? updated.slice(0, props.maxFiles) : updated);
       } else {
         const file = files[0];
         const formData = new FormData();
@@ -160,21 +171,25 @@ export function ImageUploader(props: Props) {
               </div>
             ))}
 
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="w-36 h-28 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-3 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer"
-            >
-              {uploading ? (
-                <span className="text-xs font-semibold animate-pulse">Subiendo...</span>
-              ) : (
-                <>
-                  <span className="text-2xl mb-1">🖼️</span>
-                  <span className="text-xs font-semibold text-center">+ Agregar fotos</span>
-                </>
-              )}
-            </button>
+            {(!props.maxFiles || props.value.length < props.maxFiles) && (
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-36 h-28 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center p-3 text-slate-400 hover:text-indigo-400 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                {uploading ? (
+                  <span className="text-xs font-semibold animate-pulse">Subiendo...</span>
+                ) : (
+                  <>
+                    <span className="text-2xl mb-1">🖼️</span>
+                    <span className="text-xs font-semibold text-center">
+                      + Agregar fotos {props.maxFiles ? `(${props.value.length}/${props.maxFiles})` : ''}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -140,12 +140,12 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="label mb-2 block font-semibold">Fotos del {industryLabel}</label>
+            <label className="label mb-2 block font-semibold">Foto de la {industryLabel} (1 foto por {industryLabel.toLowerCase()})</label>
             <ImageUploader
-              multiple
-              value={form.photos}
-              onChange={(urls) => setField('photos', urls)}
-              placeholder={`Subir fotos del ${industryLabel.toLowerCase()}`}
+              value={form.photos[0] ?? ''}
+              onChange={(url) => setField('photos', url ? [url] : [])}
+              placeholder={`Subir foto de la ${industryLabel.toLowerCase()}`}
+              aspectRatio="video"
             />
           </div>
           <div className="sm:col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -210,12 +210,12 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
                               />
                             </div>
                             <div>
-                              <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Fotos de la Habitación</label>
+                              <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Foto de la {industryLabel} (1 foto por {industryLabel.toLowerCase()})</label>
                               <ImageUploader
-                                multiple
-                                value={editForm.photos ?? []}
-                                onChange={(urls) => setEditForm((f) => ({ ...f, photos: urls }))}
-                                placeholder="Subir fotos"
+                                value={(editForm.photos && editForm.photos[0]) ?? ''}
+                                onChange={(url) => setEditForm((f) => ({ ...f, photos: url ? [url] : [] }))}
+                                placeholder={`Subir foto de la ${industryLabel.toLowerCase()}`}
+                                aspectRatio="video"
                               />
                             </div>
                           </div>
