@@ -44,7 +44,6 @@ export async function generateMetadata({
 }
 
 export default async function LandingPage() {
-  const t = await getTranslations();
   const locale = await getLocale();
 
   const organizationSchema = {

@@ -102,7 +102,7 @@ export default async function TenantHome({
   const isSubdomain = !!headerList.get('x-tenant-slug');
   const bookingUrl = isSubdomain ? `/${locale}/reservar` : `/${locale}/${slug}/reservar`;
 
-  const t = await getTranslations();
+  const t = await getTranslations('common');
   const ti = await getTranslations('industries');
 
   let services: any[] = [];
@@ -323,7 +323,7 @@ export default async function TenantHome({
                 className="inline-flex items-center justify-center gap-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-950 px-8 py-4 text-base font-extrabold shadow-2xl shadow-black/40 transition-all hover:scale-[1.02] active:scale-95"
               >
                 <span>📅</span>
-                <span>{isHostal ? 'Reservar Habitación Ahora' : t('booking.title')}</span>
+                <span>{isHostal ? 'Reservar Habitación Ahora' : t('title')}</span>
                 <span className="text-slate-400 font-normal">→</span>
               </Link>
 
