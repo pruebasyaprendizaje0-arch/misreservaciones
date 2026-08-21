@@ -22,3 +22,31 @@ export const prismaControl =
 if (process.env.NODE_ENV !== 'production') {
   globalForControl.prismaControl = prismaControl;
 }
+
+let schemaEnsured = false;
+
+export async function ensureControlSchema(): Promise<void> {
+  if (schemaEnsured) return;
+  try {
+    await prismaControl.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Tenant') THEN
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "provincia" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "canton" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "parroquia" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "description" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "logoUrl" TEXT;
+          ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "coverUrl" TEXT;
+        END IF;
+      END $$;
+    `);
+    schemaEnsured = true;
+  } catch (err) {
+    console.warn('[prismaControl] schema ensure warning:', err);
+  }
+}

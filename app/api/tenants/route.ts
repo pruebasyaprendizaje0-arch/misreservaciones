@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { prismaControl } from '@/lib/db/control';
+import { prismaControl, ensureControlSchema } from '@/lib/db/control';
 import { provisionTenant, normalizeSlug, type ProvisionInput } from '@/lib/provisioning';
 import { auth } from '@/lib/auth';
 
@@ -42,6 +42,7 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+    await ensureControlSchema();
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown-ip';
     if (isRateLimited(clientIp)) {
       return NextResponse.json(
