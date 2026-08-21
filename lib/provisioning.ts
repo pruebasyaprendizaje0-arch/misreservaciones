@@ -204,6 +204,17 @@ CREATE TABLE IF NOT EXISTS "Setting" (
  *   5. Seeds default settings.
  */
 export async function provisionTenant(input: ProvisionInput): Promise<ProvisionResult> {
+  // Self-heal: Ensure missing columns exist in control DB before ANY tenant query (like ensureUniqueSlug)
+  try {
+    await prismaControl.$executeRawUnsafe(`
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
+    `);
+  } catch (schemaErr) {
+    console.warn('[provisionTenant] Self-heal schema check warning:', schemaErr);
+  }
+
   const baseSlug = normalizeSlug(input.slug);
   const slug = await ensureUniqueSlug(baseSlug);
   const password = generatePassword();

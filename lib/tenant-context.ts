@@ -34,6 +34,14 @@ export async function getTenantContext(fallbackSlug?: string): Promise<TenantCon
     return { slug, tenant: cached.tenant, dbUrl: cached.tenant.dbUrl };
   }
 
+  try {
+    await prismaControl.$executeRawUnsafe(`
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
+    `);
+  } catch {}
+
   const tenant = await prismaControl.tenant.findUnique({
     where: { slug },
   });
