@@ -54,6 +54,10 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     () => initial.metadata?.commonAreaPhotos || []
   );
 
+  const [googleMapsEmbed, setGoogleMapsEmbed] = useState<string>(
+    () => initial.metadata?.googleMapsEmbed || ''
+  );
+
   const [provincias] = useState(() => getProvincias());
   const [cantones, setCantones] = useState<string[]>(() =>
     form.provincia ? getCantonesForProvincia(form.provincia) : []
@@ -126,6 +130,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     const updatedMetadata = {
       ...(initial.metadata || {}),
       commonAreaPhotos,
+      googleMapsEmbed: googleMapsEmbed.trim() || null,
     };
 
     const parsedLat = form.lat ? parseFloat(form.lat) : null;
@@ -413,6 +418,23 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               </a>
             </div>
           )}
+
+          {/* Google Maps HTML Embed Code */}
+          <div className="sm:col-span-2 lg:col-span-4 border-t border-slate-700/60 pt-4 mt-2">
+            <label className="mb-1.5 block text-sm font-semibold text-slate-300 flex items-center justify-between">
+              <span>🗺️ Mapa Interactivo en Vivo (Código HTML / &lt;iframe&gt; de Google Maps)</span>
+              <span className="text-[11px] text-indigo-400 font-normal">Opcional</span>
+            </label>
+            <p className="text-xs text-slate-400 mb-2 leading-relaxed">
+              Instrucciones: En Google Maps ➔ Busca tu negocio ➔ Haz clic en <strong>Compartir</strong> ➔ Selecciona <strong>Insertar un mapa</strong> ➔ Copia el código HTML de iframe y pégalo aquí.
+            </p>
+            <textarea
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono min-h-[80px]"
+              value={googleMapsEmbed}
+              onChange={(e) => setGoogleMapsEmbed(e.target.value)}
+              placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>'
+            />
+          </div>
         </div>
       </section>
 

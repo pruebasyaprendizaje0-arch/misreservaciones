@@ -134,6 +134,14 @@ export default async function TenantHome({
   };
 
   const commonAreaPhotos: string[] = (tenant.metadata as any)?.commonAreaPhotos || [];
+  const rawMapsEmbed: string | null = (tenant.metadata as any)?.googleMapsEmbed || null;
+  const mapsSrc = (() => {
+    if (!rawMapsEmbed) return null;
+    const trimmed = rawMapsEmbed.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    const match = trimmed.match(/src=["']([^"']+)["']/i);
+    return match ? match[1] : null;
+  })();
 
   // WhatsApp Link
   const rawPhone = tenant.phone ? tenant.phone.replace(/[^0-9]/g, '') : null;
@@ -587,6 +595,42 @@ export default async function TenantHome({
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Mapa Interactivo de Ubicación Google Maps ─── */}
+      {mapsSrc && (
+        <section className="bg-slate-900 text-white border-t border-slate-800 py-16">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-3">
+              <div>
+                <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-400">Mapa e Instalaciones</span>
+                <h2 className="text-3xl font-black text-white mt-1 flex items-center gap-2.5">
+                  <span>📍</span> Ubicación y Cómo Llegar
+                </h2>
+              </div>
+              {tenant.address && (
+                <p className="text-slate-300 text-sm max-w-md bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700/80 flex items-center gap-2">
+                  <span>🗺️</span>
+                  <span>{tenant.address}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-3xl overflow-hidden border border-slate-700/80 shadow-2xl shadow-slate-950/50 bg-slate-950 h-96 sm:h-[450px] w-full">
+              <iframe
+                src={mapsSrc}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-full"
+                title={`Mapa de ubicación de ${tenant.name}`}
+              />
             </div>
           </div>
         </section>
