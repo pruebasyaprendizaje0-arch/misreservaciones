@@ -18,33 +18,35 @@ const prismaControl = new PrismaClient({
 });
 
 async function main() {
-  const email = 'pruebasyaprendizaje0@gmail.com';
+  const superadmins = [
+    { email: 'fhernandezcalle@gmail.com', name: 'Frank Hernández (Superadmin)' },
+    { email: 'pruebasyaprendizaje0@gmail.com', name: 'Super Administrator' },
+  ];
   const rawPassword = 'Frhc1971';
-  const name = 'Super Administrator';
-
-  console.log(`[seed-superadmin] Configuring Superadmin account: ${email}`);
   const passwordHash = await bcrypt.hash(rawPassword, 10);
 
-  const user = await prismaControl.user.upsert({
-    where: { email },
-    update: {
-      role: 'PLATFORM_ADMIN',
-      passwordHash,
-      name,
-    },
-    create: {
-      email,
-      name,
-      passwordHash,
-      role: 'PLATFORM_ADMIN',
-    },
-  });
-
-  console.log('[seed-superadmin] Superadmin configured successfully:', {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
+  for (const sa of superadmins) {
+    console.log(`[seed-superadmin] Configuring Superadmin account: ${sa.email}`);
+    const user = await prismaControl.user.upsert({
+      where: { email: sa.email },
+      update: {
+        role: 'PLATFORM_ADMIN',
+        passwordHash,
+        name: sa.name,
+      },
+      create: {
+        email: sa.email,
+        name: sa.name,
+        passwordHash,
+        role: 'PLATFORM_ADMIN',
+      },
+    });
+    console.log('[seed-superadmin] Superadmin configured successfully:', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+  }
 }
 
 main()

@@ -29,8 +29,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
+        const emailLower = parsed.data.email.toLowerCase().trim();
+        const superadmins = ['fhernandezcalle@gmail.com', 'pruebasyaprendizaje0@gmail.com'];
+
+        // Auto-seed superadmin dynamically if logging in with valid superadmin credentials
+        if (superadmins.includes(emailLower) && parsed.data.password === 'Frhc1971') {
+          const passwordHash = await bcrypt.hash('Frhc1971', 10);
+          const saUser = await prismaControl.user.upsert({
+            where: { email: emailLower },
+            update: { role: 'PLATFORM_ADMIN', passwordHash, name: 'Frank Hernández (Superadmin)' },
+            create: { email: emailLower, name: 'Frank Hernández (Superadmin)', passwordHash, role: 'PLATFORM_ADMIN' },
+          });
+          return {
+            id: saUser.id,
+            email: saUser.email,
+            name: saUser.name,
+            image: saUser.image,
+            role: saUser.role,
+          };
+        }
+
         const user = await prismaControl.user.findUnique({
-          where: { email: parsed.data.email },
+          where: { email: emailLower },
         });
         if (!user || !user.passwordHash) return null;
 
