@@ -15,6 +15,14 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get('q')?.trim() || undefined;
     const industry = searchParams.get('industry') || undefined;
 
+    try {
+      await prismaControl.$executeRawUnsafe(`
+        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
+      `);
+    } catch {}
+
     const tenants = await prismaControl.tenant.findMany({
       where: {
         status: 'ACTIVE',

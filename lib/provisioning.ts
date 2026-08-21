@@ -251,6 +251,17 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   // 30 days free trial calculation
   const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+  // Self-heal: Ensure missing columns exist in control DB if Tenant table was created from an older schema version
+  try {
+    await prismaControl.$executeRawUnsafe(`
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+      ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "comuna" TEXT;
+    `);
+  } catch (schemaErr) {
+    console.warn('[provisionTenant] Self-heal schema check warning:', schemaErr);
+  }
+
   // Insert into control DB
   const tenant = await prismaControl.tenant.create({
     data: {
