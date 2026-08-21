@@ -4,7 +4,7 @@
 set -e
 
 echo "[entrypoint] Sincronizando esquema de la BD de control de producción (db push)..."
-node node_modules/.bin/prisma db push --schema=prisma/schema.control.prisma --skip-generate || {
+node node_modules/.bin/prisma db push --schema=prisma/schema.control.prisma --accept-data-loss --skip-generate || {
   echo "[entrypoint] ADVERTENCIA: prisma db push no requirió cambios o ya estaba actualizado."
 }
 
