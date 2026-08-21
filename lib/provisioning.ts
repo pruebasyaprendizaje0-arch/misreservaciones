@@ -309,13 +309,22 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   // Seed initial demo service & staff for immediate testing
   try {
     const demoServiceNames: Record<string, { name: string; desc: string; price: number; duration: number }> = {
-      HOSTAL: { name: 'Habitación Matrimonial (Demo)', desc: 'Cama matrimonial, aire acondicionado, baño privado y vista al jardín.', price: 3500, duration: 1440 },
-      MASAJE: { name: 'Masaje Terapéutico Relajante (Demo)', desc: 'Sesión de relajación muscular completa de 60 minutos.', price: 3000, duration: 60 },
-      PELUQUERIA: { name: 'Corte de Cabello & Barba (Demo)', desc: 'Servicio completo de estilización y corte.', price: 1500, duration: 45 },
-      MEDICO: { name: 'Consulta Médica General (Demo)', desc: 'Evaluación de salud integral y prescripción.', price: 2500, duration: 30 },
+      HOSTAL: { name: 'Habitación Matrimonial / Suite (Demo)', desc: 'Cama matrimonial, aire acondicionado, baño privado, WiFi y vista al mar/jardín.', price: 3500, duration: 1440 },
+      MASAJE: { name: 'Masaje Terapéutico & Aromaterapia (Demo)', desc: 'Sesión de relajación muscular completa de 60 minutos con aceites esenciales.', price: 3000, duration: 60 },
+      PELUQUERIA: { name: 'Corte de Cabello & Barba Premium (Demo)', desc: 'Servicio completo de estilización, lavado y perfilado de barba.', price: 1500, duration: 45 },
+      MEDICO: { name: 'Consulta Médica u Odontológica General (Demo)', desc: 'Evaluación clínica integral, diagnóstico y plan de tratamiento.', price: 2500, duration: 30 },
+    };
+
+    const staffRoles: Record<string, { name: string; role: string }> = {
+      HOSTAL: { name: 'Recepción & Atención (Demo)', role: 'Encargado de Reservas' },
+      MASAJE: { name: 'Dra. Elena Ramos (Demo)', role: 'Terapeuta Principal' },
+      PELUQUERIA: { name: 'Estilista Marco (Demo)', role: 'Barbero & Estilista' },
+      MEDICO: { name: 'Dr. Carlos Mendoza (Demo)', role: 'Especialista Odontólogo / Médico' },
     };
 
     const sInfo = demoServiceNames[input.industry] || demoServiceNames.HOSTAL;
+    const stInfo = staffRoles[input.industry] || staffRoles.HOSTAL;
+
     const demoService = await tenantDb.service.create({
       data: {
         industry: input.industry,
@@ -330,8 +339,8 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
 
     const demoStaff = await tenantDb.staff.create({
       data: {
-        name: 'Personal de Atención (Demo)',
-        role: 'Encargado Principal',
+        name: stInfo.name,
+        role: stInfo.role,
         active: true,
       },
     });

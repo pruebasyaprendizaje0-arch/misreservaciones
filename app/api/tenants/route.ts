@@ -5,12 +5,33 @@ import { prismaControl } from '@/lib/db/control';
 import { provisionTenant, normalizeSlug, type ProvisionInput } from '@/lib/provisioning';
 import { auth } from '@/lib/auth';
 
+const RATE_LIMIT_MAP = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hora
+const MAX_REGISTRATIONS_PER_IP = 5;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (RATE_LIMIT_MAP.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (timestamps.length >= MAX_REGISTRATIONS_PER_IP) {
+    return true;
+  }
+  timestamps.push(now);
+  RATE_LIMIT_MAP.set(ip, timestamps);
+  return false;
+}
+
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   slug: z.string().min(2).max(48),
   industry: z.enum(['HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO']),
   ownerEmail: z.string().email().optional(),
-  ownerPassword: z.string().min(8).optional(),
+  ownerPassword: z
+    .string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .regex(/[A-Z]/, 'La contraseña debe contener al menos una letra mayúscula')
+    .regex(/[a-z]/, 'La contraseña debe contener al menos una letra minúscula')
+    .regex(/[0-9]/, 'La contraseña debe contener al menos un número')
+    .optional(),
   ownerName: z.string().min(2).max(120).optional(),
 });
 
@@ -21,6 +42,13 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown-ip';
+    if (isRateLimited(clientIp)) {
+      return NextResponse.json(
+        { error: 'RATE_LIMIT_EXCEEDED', message: 'Ha excedido el límite de registros permitidos. Intente más tarde.' },
+        { status: 429 }
+      );
+    }
     const json = await req.json().catch(() => null);
     const parsed = createSchema.safeParse(json);
     if (!parsed.success) {

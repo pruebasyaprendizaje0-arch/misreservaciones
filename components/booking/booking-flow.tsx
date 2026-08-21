@@ -609,12 +609,14 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
               </div>
             </div>
             <div>
-              <label className="label">{t('notes')}</label>
+              <label className="label">
+                {industry === 'MEDICO' ? '🩺 Motivo de Consulta / Sintomatología u Odontología (Opcional)' : t('notes')}
+              </label>
               <textarea
                 className="input min-h-[80px]"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Indicaciones o requerimientos especiales..."
+                placeholder={industry === 'MEDICO' ? 'Ej. Dolor de muela, profilaxis/limpieza dental, consulta médica de control...' : 'Indicaciones o requerimientos especiales...'}
               />
             </div>
           </div>
