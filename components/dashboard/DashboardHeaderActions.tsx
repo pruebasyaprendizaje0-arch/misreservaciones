@@ -6,6 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { NewReservationModal } from './NewReservationModal';
 import { PricingRulesModal } from './PricingRulesModal';
 import { BlockDatesModal } from './BlockDatesModal';
+import { ShareBusinessButton } from '../ShareBusinessButton';
 
 type Props = {
   slug: string;
@@ -46,6 +47,8 @@ export function DashboardHeaderActions({ slug, locale }: Props) {
         >
           🏠 App principal
         </Link>
+
+        <ShareBusinessButton tenantName="Mi Negocio" tenantSlug={slug} />
 
         <a
           href={`/${locale}/${slug}`}

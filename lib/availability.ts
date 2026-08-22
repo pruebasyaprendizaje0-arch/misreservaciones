@@ -36,12 +36,25 @@ export async function computeSlots(input: SlotInput): Promise<Slot[]> {
   }
 
   // Standard time-slot computation
-  const rules = await db.availabilityRule.findMany({
-    where: {
-      active: true,
-      ...(input.staffId ? { staffId: input.staffId } : { staffId: null }),
-    },
-  });
+  let rules: any[] = [];
+  if (input.staffId) {
+    rules = await db.availabilityRule.findMany({
+      where: {
+        active: true,
+        staffId: input.staffId,
+      },
+    });
+  }
+
+  // Fallback to general business opening hours if staff has no custom rules
+  if (rules.length === 0) {
+    rules = await db.availabilityRule.findMany({
+      where: {
+        active: true,
+        staffId: null,
+      },
+    });
+  }
 
   const weekday = input.date.getDay();
   const windows = rules.filter((r) => r.weekday === weekday);
@@ -162,5 +175,89 @@ async function computeHostalSlots(
       available: !occupied,
     };
   });
+}
+
+const WEEKDAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+function minToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+export type ScheduleSuggestion = {
+  isWorkingDay: boolean;
+  workingDaysLabels: string[];
+  scheduleText?: string;
+  nextAvailableDate?: string;
+  reason?: 'NOT_WORKING_DAY' | 'FULLY_BOOKED';
+};
+
+/**
+ * Computes schedule suggestion and next available working date when no slots are found.
+ */
+export async function computeScheduleSuggestion(input: SlotInput): Promise<ScheduleSuggestion | null> {
+  const db = getTenantClient(input.dbUrl);
+
+  let rules: any[] = [];
+  if (input.staffId) {
+    rules = await db.availabilityRule.findMany({
+      where: { active: true, staffId: input.staffId },
+      orderBy: { weekday: 'asc' },
+    });
+  }
+
+  if (rules.length === 0) {
+    rules = await db.availabilityRule.findMany({
+      where: { active: true, staffId: null },
+      orderBy: { weekday: 'asc' },
+    });
+  }
+
+  if (rules.length === 0) return null;
+
+  const workingWeekdays = rules.map((r) => r.weekday);
+  const workingDaysLabels = Array.from(new Set(workingWeekdays)).map((w) => WEEKDAY_NAMES[w]);
+
+  const weekday = input.date.getDay();
+  const todayRule = rules.find((r) => r.weekday === weekday);
+  const isWorkingDay = !!todayRule && todayRule.active;
+
+  const scheduleText = todayRule
+    ? `${minToTime(todayRule.startMin)} - ${minToTime(todayRule.endMin)}`
+    : rules[0]
+    ? `${minToTime(rules[0].startMin)} - ${minToTime(rules[0].endMin)}`
+    : undefined;
+
+  // Search for the next available date with open slots up to 14 days ahead
+  let nextAvailableDate: string | undefined;
+  const baseDate = new Date(input.date);
+
+  for (let i = 1; i <= 14; i++) {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + i);
+
+    const testSlots = await computeSlots({
+      ...input,
+      date: nextDate,
+    });
+
+    const openSlot = testSlots.find((s) => s.available);
+    if (openSlot) {
+      const year = nextDate.getFullYear();
+      const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const day = String(nextDate.getDate()).padStart(2, '0');
+      nextAvailableDate = `${year}-${month}-${day}`;
+      break;
+    }
+  }
+
+  return {
+    isWorkingDay,
+    workingDaysLabels,
+    scheduleText,
+    nextAvailableDate,
+    reason: isWorkingDay ? 'FULLY_BOOKED' : 'NOT_WORKING_DAY',
+  };
 }
 

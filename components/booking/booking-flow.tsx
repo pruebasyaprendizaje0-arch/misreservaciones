@@ -14,8 +14,18 @@ type Service = {
   currency: string;
 };
 
-type Staff = { id: string; name: string; serviceIds: string[] };
+type Staff = { id: string; name: string; role?: string | null; email?: string | null; phone?: string | null; serviceIds: string[] };
 type Resource = { id: string; name: string; type: string; capacity: number; metadata?: any };
+
+type PaymentDetails = {
+  bankName?: string;
+  accountType?: string;
+  accountNumber?: string;
+  accountHolder?: string;
+  accountTaxId?: string;
+  deunaQrUrl?: string;
+  notes?: string;
+};
 
 type Props = {
   industry: 'HOSTAL' | 'MASAJE' | 'PELUQUERIA' | 'MEDICO';
@@ -23,15 +33,92 @@ type Props = {
   staff: Staff[];
   resources: Resource[];
   tenantSlug: string;
+  tenantName?: string;
+  businessPhone?: string;
+  paymentDetails?: PaymentDetails;
 };
 
 type Slot = { startsAt: string; endsAt: string; available: boolean; staffId?: string; resourceId?: string };
 
-export function BookingFlow({ industry, services, staff, resources, tenantSlug }: Props) {
+export function BookingFlow({
+  industry,
+  services,
+  staff,
+  resources,
+  tenantSlug,
+  tenantName,
+  businessPhone,
+  paymentDetails,
+}: Props) {
   const t = useTranslations('booking');
   const locale = useLocale();
 
   const isHostal = industry === 'HOSTAL';
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  function generateGoogleCalendarUrl({
+    title,
+    description,
+    location,
+    startDate,
+    endDate,
+  }: {
+    title: string;
+    description: string;
+    location: string;
+    startDate: Date;
+    endDate: Date;
+  }) {
+    const formatGDate = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, '');
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${formatGDate(startDate)}/${formatGDate(endDate)}`,
+      details: description,
+      location: location,
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function downloadIcsFile({
+    title,
+    description,
+    location,
+    startDate,
+    endDate,
+  }: {
+    title: string;
+    description: string;
+    location: string;
+    startDate: Date;
+    endDate: Date;
+  }) {
+    const formatIcsDate = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, '');
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//MisReservaciones//ES',
+      'BEGIN:VEVENT',
+      `SUMMARY:${title}`,
+      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+      `LOCATION:${location}`,
+      `DTSTART:${formatIcsDate(startDate)}`,
+      `DTEND:${formatIcsDate(endDate)}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `reserva-${confirmation || 'confirmada'}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -47,6 +134,14 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
   const [checkOutDate, setCheckOutDate] = useState<string>(tomorrowStr); // Check-out
 
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [scheduleSuggestion, setScheduleSuggestion] = useState<{
+    isWorkingDay: boolean;
+    workingDaysLabels: string[];
+    scheduleText?: string;
+    nextAvailableDate?: string;
+    reason?: 'NOT_WORKING_DAY' | 'FULLY_BOOKED';
+  } | null>(null);
+
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [chosenSlot, setChosenSlot] = useState<Slot | null>(null);
 
@@ -78,6 +173,7 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
     setLoadingSlots(true);
     setChosenSlot(null);
     setError(null);
+    setScheduleSuggestion(null);
 
     const params = new URLSearchParams({
       serviceId,
@@ -98,6 +194,7 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
       }
       const data = await res.json();
       setSlots(data.slots || []);
+      setScheduleSuggestion(data.scheduleSuggestion || null);
     } catch (err) {
       console.error(err);
       setLoadingSlots(false);
@@ -157,25 +254,81 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
   }
 
   if (confirmation) {
+    const cleanPhone = (businessPhone || '').replace(/\D/g, '');
+    const waPhone = cleanPhone.startsWith('593')
+      ? cleanPhone
+      : cleanPhone.length === 9 || cleanPhone.length === 10
+      ? `593${cleanPhone.replace(/^0/, '')}`
+      : cleanPhone;
+
+    const waText = encodeURIComponent(
+      `Hola ${tenantName || ''}, acabo de realizar la reserva #${confirmation} para el servicio "${service?.name || ''}". Deseo coordinar el pago / enviar mi comprobante.`
+    );
+    const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${waText}` : '#';
+
+    function copyToClipboard(text: string, field: string) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2500);
+      }
+    }
+
     return (
-      <div className="card text-center py-12 px-6 space-y-6 max-w-xl mx-auto shadow-xl border border-slate-100 rounded-3xl bg-white">
+      <div className="card text-center py-10 px-6 space-y-6 max-w-xl mx-auto shadow-2xl border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900">
         <div className="text-6xl animate-bounce">🎉</div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-slate-900">{t('success')}</h2>
-          <p className="text-slate-600 text-sm font-medium">{t('successMessage')}</p>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t('success')}</h2>
+          <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{t('successMessage')}</p>
         </div>
 
-        <div className="bg-indigo-50/70 rounded-2xl p-4 border border-indigo-100 space-y-1">
-          <div className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Código de Confirmación</div>
-          <div className="font-mono text-sm font-black text-indigo-700 tracking-wide">{confirmation}</div>
+        <div className="bg-indigo-50/80 dark:bg-indigo-950/60 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800 space-y-1">
+          <div className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">Código de Confirmación</div>
+          <div className="font-mono text-base font-black text-indigo-700 dark:text-indigo-400 tracking-wide select-all">{confirmation}</div>
         </div>
 
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+        {/* Primary Action Buttons: WhatsApp & Formas de Pago */}
+        <div className="space-y-3 pt-2">
+          {/* WhatsApp Button */}
+          {waPhone && (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-emerald-950/20 active:scale-98"
+            >
+              <span className="text-xl">💬</span>
+              <span>Enviar Comprobante por WhatsApp</span>
+            </a>
+          )}
+
+          {/* Formas de Pago Button */}
+          <button
+            type="button"
+            onClick={() => setShowPaymentModal(true)}
+            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-indigo-950/20 active:scale-98"
+          >
+            <span className="text-xl">💳</span>
+            <span>Ver Formas de Pago (Transferencia & QR Deuna)</span>
+          </button>
+
+          {/* Añadir a mi Calendario Button */}
+          <button
+            type="button"
+            onClick={() => setShowCalendarModal(true)}
+            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-amber-950/20 active:scale-98"
+          >
+            <span className="text-xl">📅</span>
+            <span>Añadir a mi Calendario (Google / Apple / Outlook)</span>
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
             href={`/${locale}/${tenantSlug}`}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-indigo-700 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition"
           >
-            🏠 Volver al Perfil del Negocio
+            🏠 Volver al Perfil
           </a>
           <button
             type="button"
@@ -184,11 +337,230 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
               setStep(1);
               setChosenSlot(null);
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-100 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
           >
             🔄 Hacer Otra Reserva
           </button>
         </div>
+
+        {/* ── MODAL DE FORMAS DE PAGO / TRANSFERENCIA / QR DEUNA ── */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left space-y-5 max-h-[90vh] overflow-y-auto">
+              {/* Header Modal */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>💳</span> Formas de Pago Aceptadas
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold hover:bg-slate-200 transition flex items-center justify-center text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Deuna QR Section */}
+              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+                <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>⚡</span> QR Deuna / Transferencia Inmediata
+                </div>
+                {paymentDetails?.deunaQrUrl ? (
+                  <div className="flex flex-col items-center p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <img
+                      src={paymentDetails.deunaQrUrl}
+                      alt="QR Deuna / Pago Directo"
+                      className="w-48 h-48 object-contain rounded-lg border shadow-sm"
+                    />
+                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-2">
+                      Escanea este QR desde tu app Deuna o Banco Pichincha
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3 text-center bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900">
+                    <div className="text-3xl mb-1">📲</div>
+                    <div className="text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                      Escaneo de Pago Deuna Disponible
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Puedes realizar tu pago directo por Deuna o mediante la transferencia bancaria abajo especificada.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bank Details Section */}
+              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+                <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>🏦</span> Datos de Transferencia Bancaria
+                </div>
+
+                <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
+                    <span className="font-semibold text-slate-500">Banco:</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                      {paymentDetails?.bankName || 'Banco Pichincha'}
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
+                    <span className="font-semibold text-slate-500">Tipo de Cuenta:</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                      {paymentDetails?.accountType || 'Cuenta de Ahorros'}
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
+                    <span className="font-semibold text-slate-500">Número de Cuenta:</span>
+                    <div className="flex items-center gap-2">
+                      <strong className="font-mono font-black text-sm text-indigo-600 dark:text-indigo-400">
+                        {paymentDetails?.accountNumber || 'Configurar en perfil'}
+                      </strong>
+                      {paymentDetails?.accountNumber && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(paymentDetails.accountNumber!, 'accountNumber')}
+                          className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-200 transition"
+                        >
+                          {copiedField === 'accountNumber' ? '✓ Copiado' : '📋 Copiar'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
+                    <span className="font-semibold text-slate-500">Titular de la Cuenta:</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                      {paymentDetails?.accountHolder || tenantName || 'Titular del Negocio'}
+                    </strong>
+                  </div>
+
+                  {paymentDetails?.accountTaxId && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="font-semibold text-slate-500">RUC / Cédula:</span>
+                      <div className="flex items-center gap-2">
+                        <strong className="font-mono font-extrabold text-slate-900 dark:text-white">
+                          {paymentDetails.accountTaxId}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(paymentDetails.accountTaxId!, 'accountTaxId')}
+                          className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-200 transition"
+                        >
+                          {copiedField === 'accountTaxId' ? '✓ Copiado' : '📋 Copiar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer / WhatsApp Action */}
+              <div className="pt-2">
+                {waPhone && (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-4 text-xs transition shadow-sm"
+                  >
+                    <span>📲 Enviar Comprobante por WhatsApp</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL AÑADIR A MI CALENDARIO ── */}
+        {showCalendarModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left space-y-5">
+              {/* Header Modal */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>📅</span> Añadir a mi Calendario
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendarModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold hover:bg-slate-200 transition flex items-center justify-center text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                Guarda el recordatorio de tu reserva directamente en tu calendario personal para no olvidar tu cita.
+              </p>
+
+              {/* Event Details Summary */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 space-y-1.5 text-xs text-slate-800 dark:text-slate-200">
+                <div className="font-extrabold text-indigo-950 dark:text-indigo-300 text-sm">
+                  📌 {service?.name || 'Reserva'}
+                </div>
+                <div className="font-medium text-slate-600 dark:text-slate-400">
+                  🏢 {tenantName || 'Establecimiento'}
+                </div>
+                {chosenSlot && (
+                  <div className="font-bold text-slate-900 dark:text-white">
+                    🗓️ {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy (HH:mm)')} — {format(new Date(chosenSlot.endsAt), 'HH:mm')}
+                  </div>
+                )}
+                {staffId && (
+                  <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    👨‍⚕️ Atendido por: {staff.find((s) => s.id === staffId)?.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Options */}
+              <div className="space-y-3 pt-1">
+                {/* Google Calendar Link */}
+                <a
+                  href={generateGoogleCalendarUrl({
+                    title: `Reserva: ${service?.name || 'Cita'} - ${tenantName || 'Negocio'}`,
+                    description: `Código de Confirmación: #${confirmation}\nServicio: ${service?.name || ''}\nAtendido por: ${staff.find((s) => s.id === staffId)?.name || 'Asignación automática'}\nEstablecimiento: ${tenantName || ''}`,
+                    location: tenantName || 'Establecimiento',
+                    startDate: chosenSlot ? new Date(chosenSlot.startsAt) : new Date(),
+                    endDate: chosenSlot ? new Date(chosenSlot.endsAt) : new Date(Date.now() + 3600000),
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🗓️</span>
+                    <span>Google Calendar (Web / Android)</span>
+                  </div>
+                  <span>→</span>
+                </a>
+
+                {/* Apple / iCal Download */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadIcsFile({
+                      title: `Reserva: ${service?.name || 'Cita'} - ${tenantName || 'Negocio'}`,
+                      description: `Código de Confirmación: #${confirmation}\nServicio: ${service?.name || ''}\nAtendido por: ${staff.find((s) => s.id === staffId)?.name || 'Asignación automática'}\nEstablecimiento: ${tenantName || ''}`,
+                      location: tenantName || 'Establecimiento',
+                      startDate: chosenSlot ? new Date(chosenSlot.startsAt) : new Date(),
+                      endDate: chosenSlot ? new Date(chosenSlot.endsAt) : new Date(Date.now() + 3600000),
+                    })
+                  }
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🍏</span>
+                    <span>Apple Calendar / Outlook / iCal (.ics)</span>
+                  </div>
+                  <span>⬇</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -197,20 +569,20 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
   return (
     <div className="space-y-6">
       {/* Steps Progress */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4 text-xs font-semibold text-slate-500">
-        <span className={step >= 1 ? 'text-indigo-600 font-bold' : ''}>
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 text-xs font-semibold text-slate-500 overflow-x-auto no-scrollbar whitespace-nowrap gap-2 sm:gap-4">
+        <span className={step >= 1 ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>
           1. {isHostal ? 'Tarifa / Servicio' : t('selectService')}
         </span>
-        <span>→</span>
-        <span className={step >= 2 ? 'text-indigo-600 font-bold' : ''}>
+        <span className="text-slate-300 dark:text-slate-700">→</span>
+        <span className={step >= 2 ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>
           2. {isHostal ? 'Habitación (Opcional)' : 'Asignación'}
         </span>
-        <span>→</span>
-        <span className={step >= 3 ? 'text-indigo-600 font-bold' : ''}>
-          3. {isHostal ? 'Fechas y Habitación' : t('selectDate')}
+        <span className="text-slate-300 dark:text-slate-700">→</span>
+        <span className={step >= 3 ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>
+          3. {isHostal ? 'Fechas y Turno' : t('selectDate')}
         </span>
-        <span>→</span>
-        <span className={step >= 4 ? 'text-indigo-600 font-bold' : ''}>
+        <span className="text-slate-300 dark:text-slate-700">→</span>
+        <span className={step >= 4 ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>
           4. {t('yourInfo')}
         </span>
       </div>
@@ -319,22 +691,79 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
           )}
 
           {!isHostal && (
-            <div className="space-y-3">
-              {filteredStaff.length > 0 && (
-                <div>
-                  <label className="label">{t('selectStaff')}</label>
-                  <select
-                    className="input"
-                    value={staffId || ''}
-                    onChange={(e) => setStaffId(e.target.value || undefined)}
-                  >
-                    <option value="">Cualquier profesional disponible</option>
-                    {filteredStaff.map((st) => (
-                      <option key={st.id} value={st.id}>
-                        {st.name}
-                      </option>
-                    ))}
-                  </select>
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500 font-medium">
+                Selecciona al especialista de tu preferencia que deseas que te atienda, o bien elige asignación automática.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* Option 1: Any professional */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaffId(undefined);
+                  }}
+                  className={`rounded-2xl border p-4 text-left font-bold transition flex items-center gap-3 cursor-pointer ${
+                    !staffId
+                      ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 ring-2 ring-indigo-500 shadow-md'
+                      : 'border-slate-200 hover:border-indigo-300 bg-white shadow-xs'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-500 text-white font-black text-xl flex items-center justify-center shrink-0 shadow-sm">
+                    ✨
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm">
+                      Cualquier profesional disponible
+                    </div>
+                    <div className="text-xs text-slate-500 font-normal mt-0.5">
+                      Asignación automática según el horario más conveniente
+                    </div>
+                  </div>
+                </button>
+
+                {/* Professional staff cards list */}
+                {staff.map((st) => {
+                  const isSelected = staffId === st.id;
+                  const isAssignedToService = serviceId ? st.serviceIds.includes(serviceId) : true;
+
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => {
+                        setStaffId(st.id);
+                      }}
+                      className={`rounded-2xl border p-4 text-left transition flex items-center gap-3 cursor-pointer ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 ring-2 ring-indigo-500 shadow-md'
+                          : 'border-slate-200 hover:border-indigo-300 bg-white shadow-xs'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black text-base flex items-center justify-center shrink-0 border border-indigo-200/60 shadow-xs">
+                        {st.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-extrabold text-slate-900 text-sm truncate">
+                          {st.name}
+                        </div>
+                        <div className="text-xs text-slate-500 font-medium truncate">
+                          {st.role || (industry === 'MEDICO' ? 'Médico / Especialista' : industry === 'PELUQUERIA' ? 'Estilista / Profesional' : 'Especialista')}
+                        </div>
+                        {isAssignedToService && (
+                          <span className="inline-block mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                            Especialista principal
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {staff.length === 0 && (
+                <div className="p-4 text-center text-xs italic text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+                  No hay profesionales registrados individualmente aún. Se asignará automáticamente el personal disponible.
                 </div>
               )}
             </div>
@@ -421,14 +850,61 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
 
             {loadingSlots ? (
               <div className="py-8 text-center text-sm font-semibold text-slate-400 animate-pulse">
-                Verificando disponibilidad de habitaciones…
+                Verificando disponibilidad de horarios y turnos libres…
               </div>
             ) : slots.length === 0 ? (
-              <div className="p-6 text-center text-slate-500 text-sm italic bg-slate-50 rounded-xl border border-slate-100">
-                {t('noSlots')}
+              <div className="space-y-4">
+                <div className="p-6 text-center text-slate-500 text-sm italic bg-slate-50 rounded-xl border border-slate-100">
+                  {t('noSlots')}
+                </div>
+
+                {scheduleSuggestion && (
+                  <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200/80 dark:border-amber-900 text-slate-800 dark:text-slate-200 space-y-3 shadow-sm">
+                    <div className="flex items-center gap-2 font-extrabold text-amber-900 dark:text-amber-300 text-sm">
+                      <span>⚠️</span>
+                      <span>
+                        {scheduleSuggestion.reason === 'NOT_WORKING_DAY'
+                          ? staffId
+                            ? `${staff.find((s) => s.id === staffId)?.name || 'El profesional'} no atiende en la fecha seleccionada.`
+                            : 'El establecimiento no atiende en la fecha seleccionada.'
+                          : 'Todos los turnos de atención para esta fecha están ocupados.'}
+                      </span>
+                    </div>
+
+                    {scheduleSuggestion.workingDaysLabels.length > 0 && (
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        🗓️ Días laborables habituales:{' '}
+                        <strong className="text-slate-900 dark:text-white font-bold">
+                          {scheduleSuggestion.workingDaysLabels.join(', ')}
+                        </strong>
+                        {scheduleSuggestion.scheduleText && (
+                          <span> ({scheduleSuggestion.scheduleText})</span>
+                        )}
+                      </p>
+                    )}
+
+                    {scheduleSuggestion.nextAvailableDate && (
+                      <div className="pt-2 border-t border-amber-200/60 dark:border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <span className="text-xs font-bold text-amber-950 dark:text-amber-200">
+                          💡 Próxima fecha disponible con turnos libres:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDate(scheduleSuggestion.nextAvailableDate!);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-sm transition hover:scale-[1.02] active:scale-95"
+                        >
+                          <span>📅 Ir al {scheduleSuggestion.nextAvailableDate}</span>
+                          <span>→</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className={isHostal ? 'mt-3 space-y-3' : 'mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4'}>
+              <div className={isHostal ? 'mt-3 space-y-3' : 'mt-3 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3'}>
                 {slots.map((slot) => {
                   const start = new Date(slot.startsAt);
                   const end = new Date(slot.endsAt);
@@ -555,8 +1031,13 @@ export function BookingFlow({ industry, services, staff, resources, tenantSlug }
                   🔑 Habitación: {resources.find((r) => r.id === chosenSlot.resourceId)?.name}
                 </span>
               )}
+              {staffId && (
+                <span>
+                  👨‍⚕️ Atendido por: <strong className="text-indigo-700">{staff.find((st) => st.id === staffId)?.name}</strong>
+                </span>
+              )}
               <span>
-                📅 Check-in: {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy (12:00)')}
+                📅 {isHostal ? 'Check-in:' : 'Fecha y Hora:'} {format(new Date(chosenSlot.startsAt), isHostal ? 'dd/MM/yyyy (12:00)' : 'dd/MM/yyyy - HH:mm')}
               </span>
               <span>
                 🏁 Check-out: {format(new Date(chosenSlot.endsAt), 'dd/MM/yyyy (12:00)')}

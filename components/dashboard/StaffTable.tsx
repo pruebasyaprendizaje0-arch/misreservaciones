@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { BusinessHoursEditor } from './BusinessHoursEditor';
 
 type StaffMember = {
   id: string;
@@ -23,6 +24,7 @@ export function StaffTable({ slug, initial }: Props) {
   const [editForm, setEditForm] = useState<Partial<StaffMember>>({});
   const [loading, setLoading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [scheduleStaffId, setScheduleStaffId] = useState<string | null>(null);
 
   const setField = (key: keyof typeof EMPTY, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -128,7 +130,8 @@ export function StaffTable({ slug, initial }: Props) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {staff.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                <React.Fragment key={m.id}>
+                  <tr className="hover:bg-slate-50 transition-colors">
                   {editingId === m.id ? (
                     <>
                       <td className="px-4 py-2" colSpan={3}>
@@ -168,6 +171,13 @@ export function StaffTable({ slug, initial }: Props) {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="mr-3 text-xs text-indigo-600 font-extrabold hover:underline"
+                          onClick={() => setScheduleStaffId(scheduleStaffId === m.id ? null : m.id)}
+                        >
+                          🗓️ Horario
+                        </button>
                         <button type="button" className="mr-3 text-xs text-indigo-600 font-semibold hover:underline" onClick={() => { setEditingId(m.id); setEditForm({ name: m.name, role: m.role, email: m.email, phone: m.phone }); }}>✏️ Editar</button>
                         {deleteConfirmId === m.id ? (
                           <>
@@ -182,6 +192,20 @@ export function StaffTable({ slug, initial }: Props) {
                     </>
                   )}
                 </tr>
+
+                {scheduleStaffId === m.id && (
+                  <tr>
+                    <td colSpan={5} className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-b border-indigo-200 dark:border-indigo-900">
+                      <BusinessHoursEditor
+                        slug={slug}
+                        staffId={m.id}
+                        staffName={m.name}
+                        onSaved={() => setScheduleStaffId(null)}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
               ))}
             </tbody>
           </table>

@@ -28,8 +28,9 @@ export default async function ClientesPage({
           id: true,
           startsAt: true,
           status: true,
-          service: { select: { name: true } },
+          service: { select: { name: true, priceCents: true } },
           staff: { select: { name: true } },
+          payments: { select: { amountCents: true, status: true } },
         },
         orderBy: { startsAt: 'desc' },
       },
@@ -39,18 +40,20 @@ export default async function ClientesPage({
   const term = {
     title: tenant.industry === 'MEDICO' ? 'Pacientes' : tenant.industry === 'HOSTAL' ? 'Huéspedes' : 'Clientes',
     desc: tenant.industry === 'MEDICO'
-      ? 'Listado e historias clínicas de pacientes'
+      ? 'CRM e historias clínicas de pacientes'
       : tenant.industry === 'HOSTAL'
-      ? 'Control y registro de huéspedes'
-      : 'Gestión y perfiles de clientes',
+      ? 'CRM y control de huéspedes'
+      : 'CRM y perfiles 360° de clientes',
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">👤 Gestión de {term.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+              <span>👥</span> CRM & Gestión de {term.title}
+            </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {tenant.name} · {term.desc}
             </p>
@@ -73,13 +76,14 @@ export default async function ClientesPage({
             notes: c.notes,
             medicalData: c.medicalData,
             metadata: c.metadata,
+            createdAt: c.createdAt.toISOString(),
             reservations: c.reservations.map((r) => ({
-
               id: r.id,
               startsAt: r.startsAt.toISOString(),
               status: r.status,
               service: r.service,
               staff: r.staff,
+              payments: r.payments,
             })),
           }))}
           industry={tenant.industry}

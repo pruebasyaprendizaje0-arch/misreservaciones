@@ -12,6 +12,7 @@ import { ImageUploader } from './ImageUploader';
 import { ThemeToggle } from './ThemeToggle';
 import { BlockDatesModal } from './BlockDatesModal';
 import { PricingRulesModal } from './PricingRulesModal';
+import { BusinessHoursEditor } from './BusinessHoursEditor';
 
 
 type TenantProfile = {
@@ -57,6 +58,16 @@ export function ProfileForm({ slug, initial, locale }: Props) {
   const [googleMapsEmbed, setGoogleMapsEmbed] = useState<string>(
     () => initial.metadata?.googleMapsEmbed || ''
   );
+
+  const [paymentDetails, setPaymentDetails] = useState({
+    bankName: initial.metadata?.paymentDetails?.bankName || 'Banco Pichincha',
+    accountType: initial.metadata?.paymentDetails?.accountType || 'Ahorros',
+    accountNumber: initial.metadata?.paymentDetails?.accountNumber || '',
+    accountHolder: initial.metadata?.paymentDetails?.accountHolder || initial.name || '',
+    accountTaxId: initial.metadata?.paymentDetails?.accountTaxId || '',
+    deunaQrUrl: initial.metadata?.paymentDetails?.deunaQrUrl || '',
+    notes: initial.metadata?.paymentDetails?.notes || '',
+  });
 
   const [provincias] = useState(() => getProvincias());
   const [cantones, setCantones] = useState<string[]>(() =>
@@ -131,6 +142,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
       ...(initial.metadata || {}),
       commonAreaPhotos,
       googleMapsEmbed: googleMapsEmbed.trim() || null,
+      paymentDetails,
     };
 
     const parsedLat = form.lat ? parseFloat(form.lat) : null;
@@ -436,6 +448,78 @@ export function ProfileForm({ slug, initial, locale }: Props) {
             />
           </div>
         </div>
+      </section>
+
+      {/* ── Formas de Pago, Cuentas Bancarias y Deuna QR ── */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-4">
+        <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <span className="text-xl">💳</span> Formas de Pago y Cuentas Bancarias (Transferencias & QR Deuna)
+        </h2>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Configura los datos bancarios y el código QR de Deuna/Transferencias que se mostrarán a tus clientes al confirmar su reserva.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">Banco</label>
+            <input
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none"
+              value={paymentDetails.bankName}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, bankName: e.target.value }))}
+              placeholder="Ej: Banco Pichincha, Guayaquil, Produbanco..."
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">Tipo de Cuenta</label>
+            <input
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none"
+              value={paymentDetails.accountType}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, accountType: e.target.value }))}
+              placeholder="Ej: Cuenta de Ahorros / Corriente"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">Número de Cuenta</label>
+            <input
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none font-mono"
+              value={paymentDetails.accountNumber}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, accountNumber: e.target.value }))}
+              placeholder="Ej: 2201984726"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">Titular de la Cuenta</label>
+            <input
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none"
+              value={paymentDetails.accountHolder}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, accountHolder: e.target.value }))}
+              placeholder="Nombre o Razón Social"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">RUC / Cédula del Titular</label>
+            <input
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none font-mono"
+              value={paymentDetails.accountTaxId}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, accountTaxId: e.target.value }))}
+              placeholder="Ej: 0992837482001"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-semibold text-slate-300">Imagen del Código QR (Deuna / Banco)</label>
+            <ImageUploader
+              value={paymentDetails.deunaQrUrl}
+              onChange={(url) => setPaymentDetails((p) => ({ ...p, deunaQrUrl: url }))}
+              placeholder="Subir Código QR de Pago (Deuna)"
+              aspectRatio="square"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Horarios de Atención y Días Laborables ── */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-3">
+        <BusinessHoursEditor slug={slug} />
       </section>
 
       {/* ── Apariencia y Tema Visual ── */}

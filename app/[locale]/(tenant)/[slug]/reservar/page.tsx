@@ -21,7 +21,7 @@ export default async function ReservarPage({
       orderBy: { name: 'asc' },
     }),
     db.staff.findMany({
-      where: { active: true, services: { some: { service: { industry, active: true } } } },
+      where: { active: true },
       orderBy: { name: 'asc' },
       include: { services: { include: { service: true } } },
     }),
@@ -34,6 +34,9 @@ export default async function ReservarPage({
     <div className="mx-auto max-w-3xl px-4 py-8">
       <BookingFlow
         tenantSlug={slug}
+        tenantName={ctx.tenant.name}
+        businessPhone={ctx.tenant.phone || undefined}
+        paymentDetails={(ctx.tenant.metadata as any)?.paymentDetails}
         industry={industry}
         services={services.map((s) => ({
           id: s.id,
@@ -46,6 +49,9 @@ export default async function ReservarPage({
         staff={staff.map((s) => ({
           id: s.id,
           name: s.name,
+          role: s.role,
+          email: s.email,
+          phone: s.phone,
           serviceIds: s.services.map((ss) => ss.serviceId),
         }))}
         resources={resources.map((r) => ({
