@@ -1,6 +1,7 @@
 import { getTenantClient } from './db/tenant';
 import type { Industry } from '@prisma/tenant';
 import { addMinutes, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { isNightlyIndustry } from './industries';
 
 export type SlotInput = {
   dbUrl: string;
@@ -31,7 +32,7 @@ export async function computeSlots(input: SlotInput): Promise<Slot[]> {
   const dayStart = startOfDay(input.date);
   const dayEnd = endOfDay(input.date);
 
-  if (service.industry === 'HOSTAL') {
+  if (isNightlyIndustry(service.industry)) {
     return computeHostalSlots(db, input, service.durationMin);
   }
 

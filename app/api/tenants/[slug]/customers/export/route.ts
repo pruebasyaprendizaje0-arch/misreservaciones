@@ -23,6 +23,15 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
     return NextResponse.json({ error: owner.error }, { status });
   }
 
+  const { checkFeatureAccess } = await import('@/lib/plan-guard');
+  const guard = await checkFeatureAccess(slug, 'exportCustomersExcel');
+  if (!guard.allowed) {
+    return NextResponse.json(
+      { error: 'FEATURE_LOCKED', message: guard.reason },
+      { status: 403 }
+    );
+  }
+
   const customers = await owner.db.customer.findMany({
     orderBy: { name: 'asc' },
     include: {

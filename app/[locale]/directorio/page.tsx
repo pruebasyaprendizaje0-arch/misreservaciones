@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prismaControl } from '@/lib/db/control';
 import { ECUADOR_GEO, type Provincia, getCantonesForProvincia, getParroquiasForCanton, getComunasForParroquia } from '@/lib/ecuador-geo';
+import { MACRO_CATEGORIES, getIndustriesByCategory } from '@/lib/industries';
 
 
 export async function generateMetadata({
@@ -132,11 +133,11 @@ export default async function DirectoryPage({
       {/* Header Banner */}
       <header className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white py-14 px-6 border-b border-indigo-900/50">
         <div className="mx-auto max-w-6xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-indigo-300 border border-white/10">
-            <span>📍</span> Ecuador GEO & Directory Engine
+          <div className="inline-flex items-center gap-2.5 rounded-full bg-slate-950/90 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-amber-300 border border-amber-400/40 shadow-lg">
+            <span>📍</span> ECUADOR GEO & DIRECTORY ENGINE
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
-            Directorio de Hostales y Negocios en Ecuador
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+            Directorio de Negocios y Servicios del Ecuador 🇪🇨
           </h1>
           <p className="text-slate-300 text-base max-w-2xl">
             Encuentra alojamientos en la Ruta del Spondylus (Olón, Montañita, Ayangue) y negocios locales. Realiza tu reserva directa sin intermediarios.
@@ -158,10 +159,18 @@ export default async function DirectoryPage({
               className="rounded-xl border border-slate-700 bg-slate-800/90 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Todas las Industrias</option>
-              <option value="HOSTAL">🏨 Hostales / Alojamiento</option>
-              <option value="MASAJE">💆 Spa / Masajes</option>
-              <option value="PELUQUERIA">💈 Peluquería / Barbería</option>
-              <option value="MEDICO">🩺 Consultorio Médico</option>
+              {(() => {
+                const categorized = getIndustriesByCategory();
+                return MACRO_CATEGORIES.map((cat) => (
+                  <optgroup key={cat.key} label={`${cat.icon} ${cat.name}`} className="bg-slate-900 font-bold text-indigo-300">
+                    {categorized[cat.key].map((ind) => (
+                      <option key={ind.key} value={ind.key} className="bg-slate-800 text-white font-normal">
+                        {ind.icon} {ind.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
             </select>
 
             <select

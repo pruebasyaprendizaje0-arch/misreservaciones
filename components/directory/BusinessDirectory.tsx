@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getProvincias, getCantonesForProvincia, getParroquiasForCanton } from '@/lib/ecuador-geo';
+import { getProvincias, getCantonesForProvincia, getParroquiasForCanton, getComunasForParroquia } from '@/lib/ecuador-geo';
+import { MACRO_CATEGORIES, getIndustriesByCategory, getIndustryConfig } from '@/lib/industries';
 
 type Tenant = {
   id: string;
@@ -15,30 +16,26 @@ type Tenant = {
   provincia: string | null;
   canton: string | null;
   parroquia: string | null;
+  comuna?: string | null;
   lat: number | null;
   lng: number | null;
   logoUrl: string | null;
   plan: string;
 };
 
-const INDUSTRY_META: Record<string, { icon: string; label: string; gradient: string }> = {
-  HOSTAL:      { icon: '🏨', label: 'Hostal / Alojamiento', gradient: 'from-sky-500 to-indigo-600' },
-  MASAJE:      { icon: '💆', label: 'Masajes / Spa',         gradient: 'from-orange-500 to-rose-600' },
-  PELUQUERIA:  { icon: '💈', label: 'Peluquería / Estética', gradient: 'from-purple-500 to-pink-600' },
-  MEDICO:      { icon: '🩺', label: 'Médico / Salud',        gradient: 'from-teal-500 to-emerald-600' },
+const GRADIENTS_BY_CATEGORY: Record<string, string> = {
+  ALOJAMIENTO: 'from-sky-500 to-indigo-600',
+  SALUD_BELLEZA: 'from-rose-500 to-purple-600',
+  TURISMO_AVENTURA: 'from-amber-500 to-emerald-600',
+  GASTRONOMIA_EVENTOS: 'from-orange-500 to-red-600',
+  ALQUILER_ESPACIOS: 'from-blue-500 to-teal-600',
 };
 
-const INDUSTRIES = [
-  { value: '', label: 'Todos los rubros' },
-  { value: 'HOSTAL', label: '🏨 Hostales' },
-  { value: 'MASAJE', label: '💆 Masajes' },
-  { value: 'PELUQUERIA', label: '💈 Peluquerías' },
-  { value: 'MEDICO', label: '🩺 Salud' },
-];
-
 function BusinessCard({ tenant, locale }: { tenant: Tenant; locale: string }) {
-  const meta = INDUSTRY_META[tenant.industry] ?? { icon: '🏢', label: tenant.industry, gradient: 'from-slate-500 to-slate-700' };
-  const location = [tenant.parroquia, tenant.canton, tenant.provincia].filter(Boolean).join(', ');
+  const config = getIndustryConfig(tenant.industry);
+  const gradient = GRADIENTS_BY_CATEGORY[config.macroCategory] || 'from-slate-500 to-slate-700';
+  const meta = { icon: config.icon, label: config.name, gradient };
+  const location = [tenant.comuna ? `Comuna ${tenant.comuna}` : null, tenant.parroquia, tenant.canton, tenant.provincia].filter(Boolean).join(', ');
 
   return (
     <Link
@@ -68,8 +65,11 @@ function BusinessCard({ tenant, locale }: { tenant: Tenant; locale: string }) {
               <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-300">
                 {meta.icon} {meta.label}
               </span>
-              {tenant.plan !== 'FREE' && (
-                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-300 border border-amber-500/20">⭐ PRO</span>
+              {tenant.plan === 'BUSINESS' && (
+                <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-black text-purple-300 border border-purple-500/30">🚀 BUSINESS</span>
+              )}
+              {tenant.plan === 'PRO' && (
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-black text-amber-300 border border-amber-500/30">⭐ PRO</span>
               )}
             </div>
             <h3 className="mt-1 text-lg font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
@@ -118,6 +118,7 @@ export function BusinessDirectory({ locale }: Props) {
   const [provincia, setProvincia] = useState('');
   const [canton, setCanton] = useState('');
   const [parroquia, setParroquia] = useState('');
+  const [comuna, setComuna] = useState('');
   const [industry, setIndustry] = useState('');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,19 +126,30 @@ export function BusinessDirectory({ locale }: Props) {
   const provincias = getProvincias();
   const [cantones, setCantones] = useState<string[]>([]);
   const [parroquias, setParroquias] = useState<string[]>([]);
+  const [comunas, setComunas] = useState<string[]>([]);
 
   function handleProvinciaChange(value: string) {
     setProvincia(value);
     setCanton('');
     setParroquia('');
+    setComuna('');
     setCantones(getCantonesForProvincia(value));
     setParroquias([]);
+    setComunas([]);
   }
 
   function handleCantonChange(value: string) {
     setCanton(value);
     setParroquia('');
+    setComuna('');
     setParroquias(getParroquiasForCanton(provincia, value));
+    setComunas([]);
+  }
+
+  function handleParroquiaChange(value: string) {
+    setParroquia(value);
+    setComuna('');
+    setComunas(getComunasForParroquia(provincia, canton, value));
   }
 
   const fetchTenants = useCallback(async () => {
@@ -147,6 +159,7 @@ export function BusinessDirectory({ locale }: Props) {
     if (provincia) params.set('provincia', provincia);
     if (canton) params.set('canton', canton);
     if (parroquia) params.set('parroquia', parroquia);
+    if (comuna) params.set('comuna', comuna);
     if (industry) params.set('industry', industry);
 
     const res = await fetch(`/api/directory?${params.toString()}`);
@@ -155,7 +168,7 @@ export function BusinessDirectory({ locale }: Props) {
       setTenants(data.tenants);
     }
     setLoading(false);
-  }, [q, provincia, canton, parroquia, industry]);
+  }, [q, provincia, canton, parroquia, comuna, industry]);
 
   // Debounce text search
   useEffect(() => {
@@ -168,81 +181,111 @@ export function BusinessDirectory({ locale }: Props) {
     setProvincia('');
     setCanton('');
     setParroquia('');
+    setComuna('');
     setIndustry('');
     setCantones([]);
     setParroquias([]);
+    setComunas([]);
   }
 
-  const hasFilters = q || provincia || canton || parroquia || industry;
+  const hasFilters = q || provincia || canton || parroquia || comuna || industry;
 
   return (
     <div>
       {/* ── Search & Filters ──────────────────────────── */}
-      <div className="bg-slate-900/40 rounded-2xl border border-white/5 shadow-sm p-5 space-y-4 backdrop-blur-md">
+      <div className="bg-slate-900/40 rounded-3xl border border-white/10 shadow-xl p-6 sm:p-8 space-y-6 backdrop-blur-md">
         {/* Text search */}
         <div className="relative">
-          <span className="absolute inset-y-0 left-4 flex items-center text-slate-400 text-lg pointer-events-none">🔍</span>
+          <span className="absolute inset-y-0 left-4 flex items-center text-indigo-400 text-xl pointer-events-none">🔍</span>
           <input
-            className="w-full rounded-xl border border-white/5 bg-slate-950/40 py-3 pl-12 pr-4 text-sm font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/60 py-4 pl-12 pr-4 text-base font-bold text-white placeholder-slate-400 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             type="search"
-            placeholder="Buscar por nombre, servicio o ciudad..."
+            placeholder="Buscar por nombre del negocio, servicio, ciudad, parroquia o comuna (ej. Olón, Montañita)..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
 
         {/* Geo selectors + industry */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {/* Provincia */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-indigo-300 uppercase tracking-wide">Provincia</label>
+            <label className="mb-1.5 block text-xs font-black text-indigo-300 uppercase tracking-wider">Provincia</label>
             <select
-              className="w-full rounded-xl border border-white/5 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
               value={provincia}
               onChange={(e) => handleProvinciaChange(e.target.value)}
             >
-              <option value="" className="bg-slate-900 text-slate-200">Todas</option>
-              {provincias.map((p) => <option key={p} value={p} className="bg-slate-900 text-slate-200">{p}</option>)}
+              <option value="" className="bg-slate-950 text-white">Todas las Provincias</option>
+              {provincias.map((p) => <option key={p} value={p} className="bg-slate-950 text-white">{p}</option>)}
             </select>
           </div>
 
           {/* Cantón */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-indigo-300 uppercase tracking-wide">Cantón</label>
+            <label className="mb-1.5 block text-xs font-black text-indigo-300 uppercase tracking-wider">Cantón</label>
             <select
-              className="w-full rounded-xl border border-white/5 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 shadow-inner"
               value={canton}
               onChange={(e) => handleCantonChange(e.target.value)}
               disabled={!provincia}
             >
-              <option value="" className="bg-slate-900 text-slate-200">Todos</option>
-              {cantones.map((c) => <option key={c} value={c} className="bg-slate-900 text-slate-200">{c}</option>)}
+              <option value="" className="bg-slate-950 text-white">Todos los Cantones</option>
+              {cantones.map((c) => <option key={c} value={c} className="bg-slate-950 text-white">{c}</option>)}
             </select>
           </div>
 
           {/* Parroquia */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-indigo-300 uppercase tracking-wide">Parroquia</label>
+            <label className="mb-1.5 block text-xs font-black text-indigo-300 uppercase tracking-wider">Parroquia</label>
             <select
-              className="w-full rounded-xl border border-white/5 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 shadow-inner"
               value={parroquia}
-              onChange={(e) => setParroquia(e.target.value)}
+              onChange={(e) => handleParroquiaChange(e.target.value)}
               disabled={!canton}
             >
-              <option value="" className="bg-slate-900 text-slate-200">Todas</option>
-              {parroquias.map((p) => <option key={p} value={p} className="bg-slate-900 text-slate-200">{p}</option>)}
+              <option value="" className="bg-slate-950 text-white">Todas las Parroquias</option>
+              {parroquias.map((p) => <option key={p} value={p} className="bg-slate-950 text-white">{p}</option>)}
+            </select>
+          </div>
+
+          {/* Comuna / Localidad */}
+          <div>
+            <label className="mb-1.5 block text-xs font-black text-indigo-300 uppercase tracking-wider">Comuna / Localidad</label>
+            <select
+              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 shadow-inner"
+              value={comuna}
+              onChange={(e) => setComuna(e.target.value)}
+              disabled={!parroquia || comunas.length === 0}
+            >
+              <option value="" className="bg-slate-950 text-white">
+                {comunas.length > 0 ? 'Todas las Comunas' : 'Sin comunas registradas'}
+              </option>
+              {comunas.map((c) => <option key={c} value={c} className="bg-slate-950 text-white">{c}</option>)}
             </select>
           </div>
 
           {/* Industria */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-indigo-300 uppercase tracking-wide">Rubro</label>
+            <label className="mb-1.5 block text-xs font-black text-indigo-300 uppercase tracking-wider">Rubro / Industria</label>
             <select
-              className="w-full rounded-xl border border-white/5 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-3 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
             >
-              {INDUSTRIES.map((i) => <option key={i.value} value={i.value} className="bg-slate-900 text-slate-200">{i.label}</option>)}
+              <option value="" className="bg-slate-950 text-white font-bold">Todos los Rubros</option>
+              {(() => {
+                const categorized = getIndustriesByCategory();
+                return MACRO_CATEGORIES.map((cat) => (
+                  <optgroup key={cat.key} label={`${cat.icon} ${cat.name}`} className="bg-slate-950 font-black text-indigo-300 py-1">
+                    {categorized[cat.key].map((ind) => (
+                      <option key={ind.key} value={ind.key} className="bg-slate-900 text-white font-medium py-1">
+                        {ind.icon} {ind.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
             </select>
           </div>
         </div>

@@ -9,7 +9,7 @@ const createSchema = z.object({
   description: z.string().max(2000).optional(),
   durationMin: z.number().int().min(1).max(30 * 24 * 60),
   priceCents: z.number().int().min(0),
-  industry: z.enum(['HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO']),
+  industry: z.string().min(2).max(50),
   capacity: z.number().int().min(1).default(1),
 });
 
@@ -43,12 +43,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     const status = owner.error === 'UNAUTHORIZED' ? 401 : owner.error === 'FORBIDDEN' ? 403 : 404;
     return NextResponse.json({ error: owner.error }, { status });
   }
+
+  const { checkServiceLimit } = await import('@/lib/plan-guard');
+  const guard = await checkServiceLimit(slug);
+  if (!guard.allowed) {
+    return NextResponse.json(
+      { error: 'PLAN_LIMIT_REACHED', message: guard.reason, maxAllowed: guard.maxAllowed },
+      { status: 403 }
+    );
+  }
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
     console.log('SERVICE VALIDATION FAILURE:', parsed.error.format());
     return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
   }
-  const service = await owner.db.service.create({ data: parsed.data });
+  const service = await owner.db.service.create({ data: parsed.data as any });
   return NextResponse.json({ service }, { status: 201 });
 }

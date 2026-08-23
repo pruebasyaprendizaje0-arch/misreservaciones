@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { CreateTenantModal } from './CreateTenantModal';
+import { MACRO_CATEGORIES, getIndustriesByCategory, getIndustryConfig } from '@/lib/industries';
 
 type Tenant = {
   id: string;
@@ -58,6 +60,7 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
   const [planFilter, setPlanFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Loading/saving state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -240,9 +243,9 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
           </div>
           <p className="mt-2 text-3xl font-black text-emerald-400">${estimatedMRR} / mes</p>
           <div className="mt-2 text-xs text-slate-400 font-medium flex items-center gap-2">
-            <span>{proCount} PRO ($29)</span>
+            <span>{proCount} PRO ($10)</span>
             <span>·</span>
-            <span>{businessCount} BUSINESS ($79)</span>
+            <span>{businessCount} BUSINESS ($15)</span>
           </div>
         </div>
 
@@ -298,6 +301,19 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
       {/* ───── TAB 1: TENANTS ──────────────────────────────────── */}
       {activeTab === 'tenants' && (
         <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-800">
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Directorio General de Negocios</h3>
+              <p className="text-xs text-slate-400">Puedes ingresar como superadministrador a cualquiera de ellos para asistirlos.</p>
+            </div>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-4 py-2.5 shadow-lg shadow-indigo-950/40 transition flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>➕</span> Registrar Nuevo Negocio
+            </button>
+          </div>
+
           {/* Filters Bar */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <input
@@ -314,10 +330,18 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
               className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Todas las Industrias</option>
-              <option value="HOSTAL">🏨 Hostales / Alojamientos</option>
-              <option value="MASAJE">💆 Spa / Masajes</option>
-              <option value="PELUQUERIA">💈 Peluquería / Barbería</option>
-              <option value="MEDICO">🩺 Consultorios Médicos</option>
+              {(() => {
+                const categorized = getIndustriesByCategory();
+                return MACRO_CATEGORIES.map((cat) => (
+                  <optgroup key={cat.key} label={`${cat.icon} ${cat.name}`} className="bg-slate-900 font-bold text-indigo-300">
+                    {categorized[cat.key].map((ind) => (
+                      <option key={ind.key} value={ind.key} className="bg-slate-800 text-white font-normal">
+                        {ind.icon} {ind.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
             </select>
 
             <select
@@ -444,8 +468,8 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
                             }
                           >
                             <option value="FREE">FREE</option>
-                            <option value="PRO">PRO ($29/m)</option>
-                            <option value="BUSINESS">BUSINESS ($79/m)</option>
+                            <option value="PRO">PRO ($10/m)</option>
+                            <option value="BUSINESS">BUSINESS ($15/m)</option>
                           </select>
                         </td>
 
@@ -658,20 +682,14 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
             </h3>
             <div className="space-y-3">
               {Object.entries(byIndustry).map(([ind, count]) => {
-                const labels: Record<string, string> = {
-                  HOSTAL: '🏨 Hostales & Alojamientos',
-                  MASAJE: '💆 Spa & Masajes',
-                  PELUQUERIA: '💈 Peluquerías & Barberías',
-                  MEDICO: '🩺 Consultorios Médicos',
-                };
-                const percentage = Math.round((count / totalTenants) * 100) || 0;
+                const indConfig = getIndustryConfig(ind);
                 return (
                   <div
                     key={ind}
                     className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-between"
                   >
                     <span className="text-xs font-extrabold text-slate-200">
-                      {labels[ind] || ind}
+                      {indConfig.icon} {indConfig.name}
                     </span>
                     <span className="text-sm font-black text-indigo-400">{count}</span>
                   </div>
@@ -681,6 +699,12 @@ export function AdminDashboard({ initialTenants, initialUsers, initialLogs, loca
           </div>
         </div>
       )}
+
+      <CreateTenantModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        locale={locale}
+      />
     </div>
   );
 }

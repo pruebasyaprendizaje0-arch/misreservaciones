@@ -23,6 +23,8 @@ const INDUSTRY_HERO: Record<string, { gradient: string; tagEs: string; tagEn: st
   MEDICO: { gradient: 'from-teal-600 via-emerald-600 to-slate-900', bgAccent: 'bg-teal-500/20', tagEs: 'Atención Médica Profesional', tagEn: 'Professional Medical Care' },
 };
 
+import { getIndustryConfig } from '@/lib/industries';
+
 // ─── Dynamic SEO / GEO / AEO Metadata Generation ───
 export async function generateMetadata({
   params,
@@ -34,14 +36,8 @@ export async function generateMetadata({
   if (!ctx.tenant) return {};
 
   const tenant = ctx.tenant;
-  const industryLabel =
-    tenant.industry === 'HOSTAL'
-      ? 'Hostal'
-      : tenant.industry === 'MASAJE'
-      ? 'Masajes'
-      : tenant.industry === 'PELUQUERIA'
-      ? 'Peluquería'
-      : 'Centro Médico';
+  const indConfig = getIndustryConfig(tenant.industry);
+  const industryLabel = indConfig.name;
 
   const locationParts = [
     tenant.comuna ? `Comuna ${tenant.comuna}` : null,
@@ -128,14 +124,15 @@ export default async function TenantHome({
 
   const tenant = ctx.tenant;
   const industry = tenant.industry;
-  const isHostal = industry === 'HOSTAL';
+  const indConfig = getIndustryConfig(industry);
+  const isHostal = indConfig.bookingMode === 'NIGHTLY';
   const isEn = locale === 'en';
-  const icon = INDUSTRY_ICONS[industry] ?? '🏢';
+  const icon = indConfig.icon;
   const heroInfo = INDUSTRY_HERO[industry] ?? {
     gradient: 'from-slate-800 via-indigo-950 to-slate-900',
     bgAccent: 'bg-indigo-500/20',
-    tagEs: 'Tu Negocio de Confianza',
-    tagEn: 'Your Trusted Business',
+    tagEs: indConfig.description,
+    tagEn: indConfig.description,
   };
   const heroTag = isEn ? heroInfo.tagEn : heroInfo.tagEs;
 
@@ -320,7 +317,7 @@ export default async function TenantHome({
             <div>
               <div className="inline-flex items-center gap-2.5 rounded-full bg-slate-950/60 backdrop-blur-md px-3.5 py-1 text-xs font-extrabold uppercase tracking-widest text-indigo-100 border border-white/20 shadow-md">
                 <span className="text-base">{icon}</span>
-                <span>{ti(industry as 'HOSTAL')}</span>
+                <span>{indConfig.name}</span>
                 <span className="text-white/40">•</span>
                 <span className="text-white/90">{heroTag}</span>
               </div>

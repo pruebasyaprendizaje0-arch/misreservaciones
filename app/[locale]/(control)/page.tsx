@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { BusinessDirectory } from '@/components/directory/BusinessDirectory';
+import { PricingTable } from '@/components/pricing/PricingTable';
 import { FullPageBackgroundVideo } from '@/components/FullPageBackgroundVideo';
 
 export async function generateMetadata({
@@ -90,8 +91,10 @@ export default async function LandingPage() {
       <section className="relative overflow-hidden bg-transparent">
         <div className="relative mx-auto max-w-6xl px-6 py-20 sm:py-32 z-10">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-300 backdrop-blur-md mb-6">
-              🇪🇨 Directorio de Negocios del Ecuador
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-slate-900/40 px-5 py-2 text-xs font-black uppercase tracking-wider text-indigo-300 shadow-sm backdrop-blur-md mb-6">
+              <span className="text-base">🇪🇨</span>
+              <span className="text-white font-black tracking-widest">DIRECTORIO DE NEGOCIOS DEL ECUADOR</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] text-indigo-300 font-bold border border-white/10">OFICIAL</span>
             </div>
             <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
               Encuentra y reserva
@@ -125,7 +128,7 @@ export default async function LandingPage() {
             {[
               { value: '24', label: 'Provincias' },
               { value: '221+', label: 'Cantones' },
-              { value: '4', label: 'Industrias' },
+              { value: '17', label: 'Rubros en 5 Industrias' },
             ].map((stat) => (
               <div key={stat.label} className="rounded-2xl border border-white/5 bg-slate-900/30 backdrop-blur-sm p-4">
                 <p className="text-3xl font-extrabold text-white sm:text-4xl">{stat.value}</p>
@@ -140,14 +143,15 @@ export default async function LandingPage() {
       <section className="bg-slate-900/40 backdrop-blur-md border-y border-white/5">
         <div className="mx-auto max-w-6xl px-6 py-6 flex flex-wrap items-center justify-center gap-3">
           {[
-            { icon: '🏨', label: 'Hostales', color: 'from-sky-500 to-indigo-600' },
-            { icon: '💆', label: 'Masajes', color: 'from-orange-500 to-rose-600' },
-            { icon: '💈', label: 'Peluquerías', color: 'from-purple-500 to-pink-600' },
-            { icon: '🩺', label: 'Salud & Médicos', color: 'from-teal-500 to-emerald-600' },
+            { icon: '🏨', label: 'Alojamiento y Estadías', color: 'from-sky-500 to-indigo-600' },
+            { icon: '💆', label: 'Salud, Bienestar y Belleza', color: 'from-rose-500 to-purple-600' },
+            { icon: '⛵', label: 'Turismo, Aventura y Deportes', color: 'from-amber-500 to-emerald-600' },
+            { icon: '🍽️', label: 'Gastronomía y Eventos', color: 'from-orange-500 to-red-600' },
+            { icon: '🚜', label: 'Alquiler de Espacios y Equipos', color: 'from-blue-500 to-teal-600' },
           ].map((item) => (
             <div
               key={item.label}
-              className={`inline-flex items-center gap-2 rounded-full bg-gradient-to-r ${item.color} px-5 py-2 text-sm font-semibold text-white shadow-sm`}
+              className={`inline-flex items-center gap-2 rounded-full bg-gradient-to-r ${item.color} px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:scale-105 hover:shadow-lg`}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -159,21 +163,24 @@ export default async function LandingPage() {
       {/* ── Directory ───────────────────────────────── */}
       <section id="directorio" className="bg-transparent">
         <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-extrabold text-white">
-                Directorio de Negocios
-                <span className="ml-2 text-indigo-400">🗺️</span>
+          <div className="mb-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 sm:p-8 backdrop-blur-md shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/20 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-indigo-300 border border-indigo-500/30">
+                🗺️ Explorador Geográfico Ecuador
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                Directorio de Negocios & Servicios 🇪🇨
               </h2>
-              <p className="mt-2 text-slate-300 max-w-xl">
-                Filtra por provincia, cantón y parroquia para encontrar el negocio más cercano a ti.
+              <p className="text-sm font-medium text-slate-200 max-w-2xl leading-relaxed">
+                Filtra por provincia, cantón y parroquia para encontrar alojamientos, consultorios, masajes, tours y locales cercanos.
               </p>
             </div>
             <Link
               href={`/${locale}/directorio`}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition shadow-md shrink-0"
+              className="inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 px-6 py-4 text-sm font-black text-white shadow-xl shadow-indigo-600/30 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 active:scale-[0.98] shrink-0 border border-indigo-400/30"
             >
-              🔍 Ver Directorio Avanzado →
+              <span>🗺️ Ver Directorio Avanzado</span>
+              <span className="text-indigo-200 font-bold">→</span>
             </Link>
           </div>
 
@@ -203,6 +210,25 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── Planes & Precios (FREE, PRO, BUSINESS) ───── */}
+      <section id="planes" className="bg-transparent py-20 z-10 relative">
+        <div className="mx-auto max-w-6xl px-6 space-y-12">
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/20 px-4 py-1 text-xs font-black uppercase tracking-wider text-indigo-300">
+              💎 Planes Diseñados para todo Tipo de Negocio
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Planes Transparentes y Flexibles
+            </h2>
+            <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-medium">
+              Comienza gratis durante 30 días y escala al plan que mejor se adapte a tus necesidades. Sin contratos forzosos.
+            </p>
+          </div>
+
+          <PricingTable locale={locale} />
+        </div>
+      </section>
+
       {/* ── CTA for businesses ──────────────────────── */}
       <section className="bg-transparent">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center">
@@ -211,18 +237,12 @@ export default async function LandingPage() {
             Registra tu negocio gratis y empieza a recibir reservas en línea hoy mismo.
             Calendario, estadísticas, notificaciones WhatsApp y más.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="mt-8 flex justify-center">
             <Link
               href={`/${locale}/sign-up`}
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-indigo-700 shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 px-10 py-4 text-base font-black text-white shadow-xl shadow-indigo-600/30 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 active:scale-[0.98] border border-indigo-400/30"
             >
-              🚀 Registrarme gratis
-            </Link>
-            <Link
-              href={`/${locale}/sign-in`}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/15"
-            >
-              Iniciar sesión →
+              🚀 Registrar mi negocio gratis
             </Link>
           </div>
         </div>

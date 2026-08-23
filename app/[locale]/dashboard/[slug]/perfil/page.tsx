@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { ProfileForm } from '@/components/dashboard/ProfileForm';
+import { SuperadminBanner } from '@/components/dashboard/SuperadminBanner';
 import Link from 'next/link';
 import { getLocale } from 'next-intl/server';
 
@@ -16,12 +17,25 @@ export default async function PerfilPage({
   if (!session?.user) redirect('/sign-in');
 
   const userId = (session.user as { id: string }).id;
-  const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
-  if (!tenant || tenant.ownerId !== userId) notFound();
+  const isSuperAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
+
+  const tenant = await prismaControl.tenant.findUnique({
+    where: { slug },
+    include: { owner: { select: { email: true, name: true } } },
+  });
+  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
       <div className="mx-auto max-w-3xl bg-slate-900 border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-indigo-950/20">
+        {isSuperAdmin && (
+          <SuperadminBanner
+            tenantName={tenant.name}
+            tenantSlug={slug}
+            ownerEmail={tenant.owner?.email}
+            locale={locale}
+          />
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 border-b border-slate-800/80 pb-6">
           <div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">

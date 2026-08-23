@@ -7,8 +7,11 @@ async function getAuthenticatedTenant(slug: string) {
   const session = await auth();
   if (!session?.user) return null;
   const userId = (session.user as { id: string }).id;
+  const role = (session.user as { role?: string }).role;
+  const isPlatformAdmin = role === 'PLATFORM_ADMIN';
   const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
-  if (!tenant || tenant.ownerId !== userId) return null;
+  if (!tenant) return null;
+  if (tenant.ownerId !== userId && !isPlatformAdmin) return null;
   return tenant;
 }
 

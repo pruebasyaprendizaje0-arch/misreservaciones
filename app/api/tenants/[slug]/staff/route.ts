@@ -41,6 +41,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
+  const { checkStaffLimit } = await import('@/lib/plan-guard');
+  const guard = await checkStaffLimit(slug);
+  if (!guard.allowed) {
+    return NextResponse.json(
+      { error: 'PLAN_LIMIT_REACHED', message: guard.reason, maxAllowed: guard.maxAllowed },
+      { status: 403 }
+    );
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success)

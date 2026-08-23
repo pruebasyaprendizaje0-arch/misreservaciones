@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 
 import { format, addDays } from 'date-fns';
+import { TermsModal } from '@/components/TermsModal';
 
 type Service = {
   id: string;
@@ -150,6 +151,8 @@ export function BookingFlow({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -219,6 +222,10 @@ export function BookingFlow({
 
   async function submitBooking() {
     if (!chosenSlot || !service) return;
+    if (!acceptedTerms) {
+      setError('Debes aceptar los Términos del Servicio y la Ley de Protección de Datos Personales (LOPDP Ecuador).');
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -275,17 +282,38 @@ export function BookingFlow({
     }
 
     return (
-      <div className="card text-center py-10 px-6 space-y-6 max-w-xl mx-auto shadow-2xl border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900">
+      <div className="card text-center py-10 px-6 sm:px-8 space-y-6 max-w-xl mx-auto shadow-2xl border border-slate-800 rounded-3xl bg-slate-900/95 text-white backdrop-blur-xl">
         <div className="text-6xl animate-bounce">🎉</div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t('success')}</h2>
-          <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{t('successMessage')}</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-white">{t('success')}</h2>
+          <p className="text-slate-300 text-sm font-medium leading-relaxed">{t('successMessage')}</p>
         </div>
 
-        <div className="bg-indigo-50/80 dark:bg-indigo-950/60 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800 space-y-1">
-          <div className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">Código de Confirmación</div>
-          <div className="font-mono text-base font-black text-indigo-700 dark:text-indigo-400 tracking-wide select-all">{confirmation}</div>
+        <div className="bg-indigo-950/80 rounded-2xl p-4 border border-indigo-500/40 space-y-1.5 shadow-inner">
+          <div className="text-xs font-black text-indigo-300 uppercase tracking-widest">Código de Confirmación</div>
+          <div className="font-mono text-lg font-black text-indigo-400 tracking-wider select-all">{confirmation}</div>
         </div>
+
+        {/* Custom Business Owner Note & Payment Terms Banner */}
+        {paymentDetails?.notes ? (
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-950/60 p-4 text-left space-y-1.5 shadow-lg">
+            <div className="font-black text-amber-300 flex items-center gap-2 text-xs uppercase tracking-wider">
+              <span className="text-base">📌</span> Nota & Política del Establecimiento
+            </div>
+            <p className="whitespace-pre-line text-xs font-semibold text-amber-100 leading-relaxed">
+              {paymentDetails.notes}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-950/40 p-3.5 text-left space-y-1 shadow-sm">
+            <div className="font-black text-amber-300 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+              <span>📌</span> Política de Confirmación
+            </div>
+            <p className="text-xs font-medium text-amber-200 leading-relaxed">
+              Recuerda enviar tu comprobante de pago con anticipación para asegurar tu cupo/reserva.
+            </p>
+          </div>
+        )}
 
         {/* Primary Action Buttons: WhatsApp & Formas de Pago */}
         <div className="space-y-3 pt-2">
@@ -295,7 +323,7 @@ export function BookingFlow({
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-emerald-950/20 active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-6 text-sm transition shadow-xl shadow-emerald-950/40 active:scale-98"
             >
               <span className="text-xl">💬</span>
               <span>Enviar Comprobante por WhatsApp</span>
@@ -306,7 +334,7 @@ export function BookingFlow({
           <button
             type="button"
             onClick={() => setShowPaymentModal(true)}
-            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-indigo-950/20 active:scale-98"
+            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-black py-4 px-6 text-sm transition shadow-xl shadow-indigo-950/40 active:scale-98"
           >
             <span className="text-xl">💳</span>
             <span>Ver Formas de Pago (Transferencia & QR Deuna)</span>
@@ -316,17 +344,17 @@ export function BookingFlow({
           <button
             type="button"
             onClick={() => setShowCalendarModal(true)}
-            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold py-3.5 px-6 text-sm transition shadow-md shadow-amber-950/20 active:scale-98"
+            className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black py-4 px-6 text-sm transition shadow-xl shadow-amber-950/40 active:scale-98"
           >
             <span className="text-xl">📅</span>
             <span>Añadir a mi Calendario (Google / Apple / Outlook)</span>
           </button>
         </div>
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
             href={`/${locale}/${tenantSlug}`}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-5 py-3 text-xs font-black text-white hover:bg-slate-700 transition shadow-md"
           >
             🏠 Volver al Perfil
           </a>
@@ -337,7 +365,7 @@ export function BookingFlow({
               setStep(1);
               setChosenSlot(null);
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-5 py-3 text-xs font-black text-indigo-300 hover:bg-slate-800 transition shadow-md"
           >
             🔄 Hacer Otra Reserva
           </button>
@@ -345,45 +373,45 @@ export function BookingFlow({
 
         {/* ── MODAL DE FORMAS DE PAGO / TRANSFERENCIA / QR DEUNA ── */}
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <div className="relative w-full max-w-lg bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 text-left space-y-5 max-h-[90vh] overflow-y-auto text-white">
               {/* Header Modal */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
                   <span>💳</span> Formas de Pago Aceptadas
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold hover:bg-slate-200 transition flex items-center justify-center text-sm"
+                  className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 font-bold hover:text-white hover:bg-slate-700 transition flex items-center justify-center text-sm"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Deuna QR Section */}
-              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80">
-                <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="space-y-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
+                <div className="font-extrabold text-sm text-white flex items-center gap-2">
                   <span>⚡</span> QR Deuna / Transferencia Inmediata
                 </div>
                 {paymentDetails?.deunaQrUrl ? (
-                  <div className="flex flex-col items-center p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <div className="flex flex-col items-center p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-inner">
                     <img
                       src={paymentDetails.deunaQrUrl}
                       alt="QR Deuna / Pago Directo"
-                      className="w-48 h-48 object-contain rounded-lg border shadow-sm"
+                      className="w-48 h-48 object-contain rounded-lg border border-slate-700 shadow-md"
                     />
-                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-2">
+                    <span className="text-[11px] font-black text-indigo-300 mt-2.5">
                       Escanea este QR desde tu app Deuna o Banco Pichincha
                     </span>
                   </div>
                 ) : (
-                  <div className="p-3 text-center bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900">
+                  <div className="p-4 text-center bg-indigo-950/50 rounded-xl border border-indigo-500/30">
                     <div className="text-3xl mb-1">📲</div>
-                    <div className="text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                    <div className="text-xs font-bold text-indigo-300">
                       Escaneo de Pago Deuna Disponible
                     </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    <div className="text-[11px] text-slate-300 mt-0.5 font-medium">
                       Puedes realizar tu pago directo por Deuna o mediante la transferencia bancaria abajo especificada.
                     </div>
                   </div>
@@ -391,37 +419,37 @@ export function BookingFlow({
               </div>
 
               {/* Bank Details Section */}
-              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80">
-                <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="space-y-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
+                <div className="font-extrabold text-sm text-white flex items-center gap-2">
                   <span>🏦</span> Datos de Transferencia Bancaria
                 </div>
 
-                <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
-                    <span className="font-semibold text-slate-500">Banco:</span>
-                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                <div className="space-y-2.5 text-xs text-slate-200">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-800">
+                    <span className="font-semibold text-slate-400">Banco:</span>
+                    <strong className="font-extrabold text-white">
                       {paymentDetails?.bankName || 'Banco Pichincha'}
                     </strong>
                   </div>
 
-                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
-                    <span className="font-semibold text-slate-500">Tipo de Cuenta:</span>
-                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-800">
+                    <span className="font-semibold text-slate-400">Tipo de Cuenta:</span>
+                    <strong className="font-extrabold text-white">
                       {paymentDetails?.accountType || 'Cuenta de Ahorros'}
                     </strong>
                   </div>
 
-                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
-                    <span className="font-semibold text-slate-500">Número de Cuenta:</span>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-800">
+                    <span className="font-semibold text-slate-400">Número de Cuenta:</span>
                     <div className="flex items-center gap-2">
-                      <strong className="font-mono font-black text-sm text-indigo-600 dark:text-indigo-400">
+                      <strong className="font-mono font-black text-sm text-indigo-400">
                         {paymentDetails?.accountNumber || 'Configurar en perfil'}
                       </strong>
                       {paymentDetails?.accountNumber && (
                         <button
                           type="button"
                           onClick={() => copyToClipboard(paymentDetails.accountNumber!, 'accountNumber')}
-                          className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-200 transition"
+                          className="px-2 py-1 rounded bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold hover:bg-indigo-900 transition"
                         >
                           {copiedField === 'accountNumber' ? '✓ Copiado' : '📋 Copiar'}
                         </button>
@@ -429,24 +457,24 @@ export function BookingFlow({
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700">
-                    <span className="font-semibold text-slate-500">Titular de la Cuenta:</span>
-                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-800">
+                    <span className="font-semibold text-slate-400">Titular de la Cuenta:</span>
+                    <strong className="font-extrabold text-white">
                       {paymentDetails?.accountHolder || tenantName || 'Titular del Negocio'}
                     </strong>
                   </div>
 
                   {paymentDetails?.accountTaxId && (
                     <div className="flex justify-between items-center py-1">
-                      <span className="font-semibold text-slate-500">RUC / Cédula:</span>
+                      <span className="font-semibold text-slate-400">RUC / Cédula:</span>
                       <div className="flex items-center gap-2">
-                        <strong className="font-mono font-extrabold text-slate-900 dark:text-white">
+                        <strong className="font-mono font-extrabold text-white">
                           {paymentDetails.accountTaxId}
                         </strong>
                         <button
                           type="button"
                           onClick={() => copyToClipboard(paymentDetails.accountTaxId!, 'accountTaxId')}
-                          className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-200 transition"
+                          className="px-2 py-1 rounded bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold hover:bg-indigo-900 transition"
                         >
                           {copiedField === 'accountTaxId' ? '✓ Copiado' : '📋 Copiar'}
                         </button>
@@ -456,6 +484,16 @@ export function BookingFlow({
                 </div>
               </div>
 
+              {/* Custom Business Owner Note Banner in Modal */}
+              {paymentDetails?.notes && (
+                <div className="rounded-2xl border border-amber-500/40 bg-amber-950/60 p-4 text-xs text-amber-200 leading-relaxed space-y-1.5 shadow-lg">
+                  <div className="font-black text-amber-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                    <span>📌</span> Nota del Establecimiento
+                  </div>
+                  <p className="whitespace-pre-line font-medium text-amber-100">{paymentDetails.notes}</p>
+                </div>
+              )}
+
               {/* Modal Footer / WhatsApp Action */}
               <div className="pt-2">
                 {waPhone && (
@@ -463,7 +501,7 @@ export function BookingFlow({
                     href={waUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-4 text-xs transition shadow-sm"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 px-4 text-xs transition shadow-md"
                   >
                     <span>📲 Enviar Comprobante por WhatsApp</span>
                   </a>
@@ -475,47 +513,47 @@ export function BookingFlow({
 
         {/* ── MODAL AÑADIR A MI CALENDARIO ── */}
         {showCalendarModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-left space-y-5">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <div className="relative w-full max-w-md bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 text-left space-y-5 text-white">
               {/* Header Modal */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
                   <span>📅</span> Añadir a mi Calendario
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowCalendarModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold hover:bg-slate-200 transition flex items-center justify-center text-sm"
+                  className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 font-bold hover:text-white hover:bg-slate-700 transition flex items-center justify-center text-sm"
                 >
                   ✕
                 </button>
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
                 Guarda el recordatorio de tu reserva directamente en tu calendario personal para no olvidar tu cita.
               </p>
 
               {/* Event Details Summary */}
-              <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 space-y-1.5 text-xs text-slate-800 dark:text-slate-200">
-                <div className="font-extrabold text-indigo-950 dark:text-indigo-300 text-sm">
+              <div className="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 space-y-1.5 text-xs text-slate-200 shadow-inner">
+                <div className="font-extrabold text-indigo-300 text-sm">
                   📌 {service?.name || 'Reserva'}
                 </div>
-                <div className="font-medium text-slate-600 dark:text-slate-400">
+                <div className="font-medium text-slate-400">
                   🏢 {tenantName || 'Establecimiento'}
                 </div>
                 {chosenSlot && (
-                  <div className="font-bold text-slate-900 dark:text-white">
+                  <div className="font-bold text-white">
                     🗓️ {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy (HH:mm)')} — {format(new Date(chosenSlot.endsAt), 'HH:mm')}
                   </div>
                 )}
                 {staffId && (
-                  <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                    👨‍⚕️ Atendido por: {staff.find((s) => s.id === staffId)?.name}
+                  <div className="text-xs font-semibold text-indigo-300">
+                    👤 Atendido por: {staff.find((s) => s.id === staffId)?.name || 'Asignación automática'}
                   </div>
                 )}
               </div>
 
-              {/* Options */}
+              {/* Action Links for Google Calendar and iCal Download */}
               <div className="space-y-3 pt-1">
                 {/* Google Calendar Link */}
                 <a
@@ -528,13 +566,13 @@ export function BookingFlow({
                   })}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-xs"
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition text-xs font-black text-white shadow-md"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🗓️</span>
                     <span>Google Calendar (Web / Android)</span>
                   </div>
-                  <span>→</span>
+                  <span className="text-indigo-400 font-bold">→</span>
                 </a>
 
                 {/* Apple / iCal Download */}
@@ -549,13 +587,13 @@ export function BookingFlow({
                       endDate: chosenSlot ? new Date(chosenSlot.endsAt) : new Date(Date.now() + 3600000),
                     })
                   }
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 transition text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-xs"
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition text-xs font-black text-white shadow-md"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🍏</span>
                     <span>Apple Calendar / Outlook / iCal (.ics)</span>
                   </div>
-                  <span>⬇</span>
+                  <span className="text-indigo-400 font-bold">⬇</span>
                 </button>
               </div>
             </div>
@@ -1100,7 +1138,37 @@ export function BookingFlow({
                 placeholder={industry === 'MEDICO' ? 'Ej. Dolor de muela, profilaxis/limpieza dental, consulta médica de control...' : 'Indicaciones o requerimientos especiales...'}
               />
             </div>
+
+            {/* Legal terms check */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700 select-none">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  required
+                />
+                <span className="leading-snug">
+                  Acepto los{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-indigo-600 font-bold underline hover:text-indigo-800 inline"
+                  >
+                    Términos del Servicio y la Ley de Protección de Datos Personales (LOPDP Ecuador)
+                  </button>
+                  .
+                </span>
+              </label>
+            </div>
           </div>
+
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-medium">
+              {error}
+            </div>
+          )}
 
           <div className="flex justify-between pt-4 border-t border-slate-100">
             <button type="button" className="btn-secondary" onClick={() => setStep(3)}>
@@ -1108,13 +1176,18 @@ export function BookingFlow({
             </button>
             <button
               type="button"
-              className="btn-primary px-8 text-base py-3"
-              disabled={submitting || !name}
+              className="btn-primary px-8 text-base py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || !name || !acceptedTerms}
               onClick={submitBooking}
             >
               {submitting ? 'Confirmando…' : '✅ Confirmar Reserva'}
             </button>
           </div>
+
+          <TermsModal
+            isOpen={showTermsModal}
+            onClose={() => setShowTermsModal(false)}
+          />
         </div>
       )}
     </div>

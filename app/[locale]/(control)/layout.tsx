@@ -15,36 +15,42 @@ export default async function ControlLayout({ children }: { children: React.Reac
 
       {/* Main layout container wrapped in relative z-10 */}
       <div className="relative z-10 flex flex-col flex-1">
-        {/* Dark & Transparent glassmorphic header */}
-        <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/40 backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        {/* Glassmorphic transparent header */}
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/40 backdrop-blur-md shadow-sm">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
             {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-black text-white shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 text-base font-black text-white shadow-lg shadow-indigo-500/20">
                 R
               </div>
-              <span className="text-lg font-extrabold text-white tracking-tight">
-                misreserva<span className="text-indigo-400">ciones</span>
+              <span className="text-xl font-black text-white tracking-tight">
+                misreserva<span className="text-indigo-400 font-black">ciones</span>
               </span>
             </Link>
 
             {/* Nav */}
-            <nav className="flex items-center gap-4 text-sm">
+            <nav className="flex items-center gap-5 text-sm">
               <a
                 href={`/${locale}#directorio`}
-                className="hidden sm:inline-flex items-center gap-1 text-slate-300 font-medium hover:text-indigo-400 transition"
+                className="hidden sm:inline-flex items-center gap-1.5 text-white font-extrabold hover:text-indigo-300 transition"
               >
                 🔍 Directorio
               </a>
+              <a
+                href={`/${locale}#planes`}
+                className="hidden sm:inline-flex items-center gap-1.5 text-white font-extrabold hover:text-indigo-300 transition"
+              >
+                💎 Planes & Precios
+              </a>
               <Link
                 href={`/${locale}/sign-in`}
-                className="text-slate-300 font-medium hover:text-white transition"
+                className="text-white font-extrabold hover:text-indigo-300 transition"
               >
                 {t('signIn')}
               </Link>
               <Link
                 href={`/${locale}/sign-up`}
-                className="btn-primary text-sm bg-indigo-600 hover:bg-indigo-500 border-none text-white shadow-sm"
+                className="btn-primary text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-none text-white font-black px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition"
               >
                 {t('signUp')}
               </Link>

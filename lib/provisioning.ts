@@ -2,10 +2,12 @@ import { Client as PgClient } from 'pg';
 import { randomBytes } from 'node:crypto';
 import { prismaControl } from './db/control';
 
+import { getIndustryConfig } from './industries';
+
 export type ProvisionInput = {
   slug: string;
   name: string;
-  industry: 'HOSTAL' | 'MASAJE' | 'PELUQUERIA' | 'MEDICO';
+  industry: string;
   ownerId: string;
 };
 
@@ -82,8 +84,29 @@ async function ensureUniqueSlug(base: string): Promise<string> {
 
 const TENANT_DDL = `
 DO $$ BEGIN
-  CREATE TYPE "Industry" AS ENUM ('HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO');
+  CREATE TYPE "Industry" AS ENUM (
+    'HOSTAL', 'GLAMPING', 'VACACIONAL',
+    'MEDICO', 'MASAJE', 'PELUQUERIA', 'TATUAJE', 'VETERINARIA',
+    'TOURS', 'DEPORTES_ACUATICOS', 'PARAPENTE',
+    'RESTAURANTE', 'CATA_TALLER', 'EVENTOS',
+    'ALQUILER_VEHICULOS', 'CANCHAS', 'COWORKING', 'CAR_WASH'
+  );
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'GLAMPING';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'VACACIONAL';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'TATUAJE';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'VETERINARIA';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'TOURS';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'DEPORTES_ACUATICOS';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'PARAPENTE';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'RESTAURANTE';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'CATA_TALLER';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'EVENTOS';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'ALQUILER_VEHICULOS';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'CANCHAS';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'COWORKING';
+ALTER TYPE "Industry" ADD VALUE IF NOT EXISTS 'CAR_WASH';
 
 DO $$ BEGIN
   CREATE TYPE "ResourceType" AS ENUM ('HABITACION', 'MESA', 'ASIENTO', 'CONSULTORIO', 'SILLA');
@@ -322,30 +345,17 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
 
   // Seed initial demo service & staff for immediate testing
   try {
-    const demoServiceNames: Record<string, { name: string; desc: string; price: number; duration: number }> = {
-      HOSTAL: { name: 'Habitación Matrimonial / Suite (Demo)', desc: 'Cama matrimonial, aire acondicionado, baño privado, WiFi y vista al mar/jardín.', price: 3500, duration: 1440 },
-      MASAJE: { name: 'Masaje Terapéutico & Aromaterapia (Demo)', desc: 'Sesión de relajación muscular completa de 60 minutos con aceites esenciales.', price: 3000, duration: 60 },
-      PELUQUERIA: { name: 'Corte de Cabello & Barba Premium (Demo)', desc: 'Servicio completo de estilización, lavado y perfilado de barba.', price: 1500, duration: 45 },
-      MEDICO: { name: 'Consulta Médica u Odontológica General (Demo)', desc: 'Evaluación clínica integral, diagnóstico y plan de tratamiento.', price: 2500, duration: 30 },
-    };
-
-    const staffRoles: Record<string, { name: string; role: string }> = {
-      HOSTAL: { name: 'Recepción & Atención (Demo)', role: 'Encargado de Reservas' },
-      MASAJE: { name: 'Dra. Elena Ramos (Demo)', role: 'Terapeuta Principal' },
-      PELUQUERIA: { name: 'Estilista Marco (Demo)', role: 'Barbero & Estilista' },
-      MEDICO: { name: 'Dr. Carlos Mendoza (Demo)', role: 'Especialista Odontólogo / Médico' },
-    };
-
-    const sInfo = demoServiceNames[input.industry] || demoServiceNames.HOSTAL;
-    const stInfo = staffRoles[input.industry] || staffRoles.HOSTAL;
+    const config = getIndustryConfig(input.industry);
+    const sInfo = config.defaultServiceDemo;
+    const stInfo = config.defaultStaffDemo;
 
     const demoService = await tenantDb.service.create({
       data: {
-        industry: input.industry,
+        industry: input.industry as any,
         name: sInfo.name,
         description: sInfo.desc,
-        durationMin: sInfo.duration,
-        priceCents: sInfo.price,
+        durationMin: sInfo.durationMin,
+        priceCents: sInfo.priceCents,
         currency: 'USD',
         active: true,
       },
@@ -366,11 +376,18 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
       },
     });
 
-    if (input.industry === 'HOSTAL') {
+    if (config.bookingMode === 'NIGHTLY') {
       await tenantDb.resource.createMany({
         data: [
-          { type: 'HABITACION', name: 'Habitación 101 - Matrimonial', capacity: 2, active: true },
-          { type: 'HABITACION', name: 'Habitación 102 - Doble Twin', capacity: 3, active: true },
+          { type: 'HABITACION', name: `${config.resourceLabel.singular} 101 - Premium (Demo)`, capacity: 2, active: true },
+          { type: 'HABITACION', name: `${config.resourceLabel.singular} 102 - Familiar (Demo)`, capacity: 4, active: true },
+        ],
+      });
+    } else if (config.bookingMode === 'SPACE_INVENTORY') {
+      await tenantDb.resource.createMany({
+        data: [
+          { type: 'MESA', name: `${config.resourceLabel.singular} 1 (Demo)`, capacity: 4, active: true },
+          { type: 'MESA', name: `${config.resourceLabel.singular} 2 (Demo)`, capacity: 6, active: true },
         ],
       });
     }

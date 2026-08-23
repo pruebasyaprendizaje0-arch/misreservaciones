@@ -7,6 +7,8 @@ import { startOfDay, endOfDay, addDays } from 'date-fns';
 import Link from 'next/link';
 import { ReservationCalendar } from '@/components/dashboard/ReservationCalendar';
 import { DashboardHeaderActions } from '@/components/dashboard/DashboardHeaderActions';
+import { SuperadminBanner } from '@/components/dashboard/SuperadminBanner';
+import { getIndustryConfig } from '@/lib/industries';
 
 export default async function TenantDashboard({
   params,
@@ -21,8 +23,16 @@ export default async function TenantDashboard({
   if (!session?.user) redirect('/sign-in');
 
   const userId = (session.user as { id: string }).id;
-  const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
-  if (!tenant || tenant.ownerId !== userId) notFound();
+  const userRole = (session.user as { role?: string }).role;
+  const isSuperAdmin = userRole === 'PLATFORM_ADMIN';
+
+  const tenant = await prismaControl.tenant.findUnique({
+    where: { slug },
+    include: { owner: { select: { email: true, name: true } } },
+  });
+  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+
+  const config = getIndustryConfig(tenant.industry);
 
   const db = getTenantClient(tenant.dbUrl);
   const now = new Date();
@@ -78,6 +88,15 @@ export default async function TenantDashboard({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-6xl px-4 py-8">
+        {isSuperAdmin && (
+          <SuperadminBanner
+            tenantName={tenant.name}
+            tenantSlug={slug}
+            ownerEmail={tenant.owner?.email}
+            locale={locale}
+          />
+        )}
+
         {/* ── Header ─────────────────────────────────────────── */}
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -118,11 +137,11 @@ export default async function TenantDashboard({
 
         <nav className="mt-6 flex flex-wrap gap-2">
           {[
-            { href: `/${locale}/dashboard/${slug}?view=calendar`, label: tenant.industry === 'MEDICO' ? '📅 Consultas' : tenant.industry === 'HOSTAL' ? '📅 Estancias' : '📅 Reservas' },
-            { href: `/${locale}/dashboard/${slug}/servicios`, label: tenant.industry === 'MEDICO' ? '🩺 Consultas y Tratamientos' : tenant.industry === 'HOSTAL' ? '🛌 Habitaciones y Tarifas' : tenant.industry === 'MASAJE' ? '💆 Servicios y Masajes' : '💈 Servicios y Cortes' },
-            { href: `/${locale}/dashboard/${slug}/personal`, label: tenant.industry === 'MEDICO' ? '👥 Médicos' : tenant.industry === 'HOSTAL' ? '👥 Empleados' : tenant.industry === 'MASAJE' ? '👥 Terapeutas' : '👥 Estilistas' },
-            { href: `/${locale}/dashboard/${slug}/recursos`, label: tenant.industry === 'MEDICO' ? '🏥 Consultorios' : tenant.industry === 'HOSTAL' ? '🔑 Habitaciones' : tenant.industry === 'MASAJE' ? '🏠 Cabinas / Camillas' : '🪑 Sillas / Tocadores' },
-            { href: `/${locale}/dashboard/${slug}/clientes`, label: tenant.industry === 'MEDICO' ? '👤 Pacientes' : tenant.industry === 'HOSTAL' ? '👤 Huéspedes' : '👤 Clientes' },
+            { href: `/${locale}/dashboard/${slug}?view=calendar`, label: config.bookingMode === 'NIGHTLY' ? '📅 Estancias' : '📅 Reservas & Citas' },
+            { href: `/${locale}/dashboard/${slug}/servicios`, label: config.serviceTitle },
+            { href: `/${locale}/dashboard/${slug}/personal`, label: `👥 ${config.staffLabel.plural}` },
+            { href: `/${locale}/dashboard/${slug}/recursos`, label: `🔑 ${config.resourceLabel.plural}` },
+            { href: `/${locale}/dashboard/[slug]/clientes`.replace('[slug]', slug), label: `👤 ${config.customerLabel.plural}` },
             { href: `/${locale}/dashboard/${slug}/estadisticas`, label: '📊 Estadísticas' },
             { href: `/${locale}/dashboard/${slug}/perfil`, label: '⚙️ Perfil' },
           ].map((item) => (
@@ -225,24 +244,35 @@ export default async function TenantDashboard({
 
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase block">Plan y Estado</span>
-                  <div className="flex gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">Plan & Límites del Negocio</span>
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className={`px-2.5 py-1 rounded-full text-xs border font-black ${
                       tenant.plan === 'BUSINESS'
-                        ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                        ? 'bg-purple-950/80 border-purple-500/40 text-purple-300'
                         : tenant.plan === 'PRO'
-                        ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-amber-950/80 border-amber-500/40 text-amber-300'
+                        : 'bg-slate-800 border-slate-700 text-slate-300'
                     }`}>
-                      {tenant.plan}
+                      {tenant.plan === 'BUSINESS' ? '🚀 BUSINESS' : tenant.plan === 'PRO' ? '⭐ PRO' : 'FREE'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-black ${
                       tenant.status === 'ACTIVE'
-                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                        ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
+                        : 'bg-amber-950/80 border border-amber-500/40 text-amber-300'
                     }`}>
-                      {tenant.status}
+                      {tenant.status === 'ACTIVE' ? 'Activo' : tenant.status}
                     </span>
+                  </div>
+
+                  <div className="mt-3 space-y-1 text-xs text-slate-400 bg-slate-800/40 p-3 rounded-xl border border-slate-700/60">
+                    <div className="flex justify-between">
+                      <span>Servicios permitidos:</span>
+                      <strong className="text-white font-bold">{servicesCount} / {tenant.plan === 'BUSINESS' ? '∞' : tenant.plan === 'PRO' ? '15' : '3'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Límite mensual reservas:</span>
+                      <strong className="text-white font-bold">{today.length} / {tenant.plan === 'BUSINESS' ? '∞' : tenant.plan === 'PRO' ? '300' : '30'}</strong>
+                    </div>
                   </div>
                 </div>
 

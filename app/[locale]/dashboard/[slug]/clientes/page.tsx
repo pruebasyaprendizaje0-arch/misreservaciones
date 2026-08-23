@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
 import { CustomerDirectory } from '@/components/dashboard/CustomerDirectory';
+import { SuperadminBanner } from '@/components/dashboard/SuperadminBanner';
+import { getIndustryConfig } from '@/lib/industries';
 import Link from 'next/link';
 
 export default async function ClientesPage({
@@ -15,8 +17,13 @@ export default async function ClientesPage({
   if (!session?.user) redirect('/sign-in');
 
   const userId = (session.user as { id: string }).id;
-  const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
-  if (!tenant || tenant.ownerId !== userId) notFound();
+  const isSuperAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
+
+  const tenant = await prismaControl.tenant.findUnique({
+    where: { slug },
+    include: { owner: { select: { email: true, name: true } } },
+  });
+  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
 
   const db = getTenantClient(tenant.dbUrl);
 
@@ -37,18 +44,23 @@ export default async function ClientesPage({
     },
   });
 
+  const config = getIndustryConfig(tenant.industry);
   const term = {
-    title: tenant.industry === 'MEDICO' ? 'Pacientes' : tenant.industry === 'HOSTAL' ? 'Huéspedes' : 'Clientes',
-    desc: tenant.industry === 'MEDICO'
-      ? 'CRM e historias clínicas de pacientes'
-      : tenant.industry === 'HOSTAL'
-      ? 'CRM y control de huéspedes'
-      : 'CRM y perfiles 360° de clientes',
+    title: config.customerLabel.plural,
+    desc: `CRM y gestión 360° de ${config.customerLabel.plural.toLowerCase()}`,
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-7xl px-4 py-8">
+        {isSuperAdmin && (
+          <SuperadminBanner
+            tenantName={tenant.name}
+            tenantSlug={slug}
+            ownerEmail={tenant.owner?.email}
+            locale={locale}
+          />
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2">
@@ -87,6 +99,7 @@ export default async function ClientesPage({
             })),
           }))}
           industry={tenant.industry}
+          plan={tenant.plan}
         />
       </div>
     </div>

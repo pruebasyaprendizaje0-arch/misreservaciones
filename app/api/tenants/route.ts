@@ -23,7 +23,7 @@ function isRateLimited(ip: string): boolean {
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   slug: z.string().min(2).max(48),
-  industry: z.enum(['HOSTAL', 'MASAJE', 'PELUQUERIA', 'MEDICO']),
+  industry: z.string().min(2).max(50),
   ownerEmail: z.string().email().optional(),
   ownerPassword: z
     .string()
@@ -43,8 +43,11 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     await ensureControlSchema();
+    const session = await auth().catch(() => null);
+    const isPlatformAdmin = session?.user && (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
+
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown-ip';
-    if (isRateLimited(clientIp)) {
+    if (!isPlatformAdmin && isRateLimited(clientIp)) {
       return NextResponse.json(
         { error: 'RATE_LIMIT_EXCEEDED', message: 'Ha excedido el límite de registros permitidos. Intente más tarde.' },
         { status: 429 }
@@ -55,9 +58,6 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
     }
-
-    const session = await auth().catch(() => null);
-    const isPlatformAdmin = session?.user && (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
 
     let ownerId: string;
     let createdOwner = false;

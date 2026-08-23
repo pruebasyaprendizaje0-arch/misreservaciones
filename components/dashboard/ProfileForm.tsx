@@ -514,6 +514,21 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               aspectRatio="square"
             />
           </div>
+          <div className="sm:col-span-2 border-t border-slate-700/60 pt-4 mt-2">
+            <label className="mb-1.5 block text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase tracking-wide">
+              <span>📌</span> Nota de Confirmación & Políticas de Pago (Visible al Cliente al Reservar)
+            </label>
+            <textarea
+              rows={3}
+              className="block w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-xs text-white placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none leading-relaxed font-medium"
+              value={paymentDetails.notes}
+              onChange={(e) => setPaymentDetails((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="Ej: Recuerda realizar el abono o pago 24 horas antes de la fecha de tu reserva, de lo contrario la reserva no tendrá validez y quedará cancelada."
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
+              💡 Esta nota aparecerá destacada en la pantalla de confirmación final que ve el cliente y en las instrucciones de pago.
+            </p>
+          </div>
         </div>
       </section>
 

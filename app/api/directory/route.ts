@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const provincia = searchParams.get('provincia') || undefined;
     const canton = searchParams.get('canton') || undefined;
     const parroquia = searchParams.get('parroquia') || undefined;
+    const comuna = searchParams.get('comuna') || undefined;
     const q = searchParams.get('q')?.trim() || undefined;
     const industry = searchParams.get('industry') || undefined;
 
@@ -29,12 +30,15 @@ export async function GET(req: NextRequest) {
         ...(provincia ? { provincia } : {}),
         ...(canton ? { canton } : {}),
         ...(parroquia ? { parroquia } : {}),
+        ...(comuna ? { comuna } : {}),
         ...(industry ? { industry } : {}),
         ...(q
           ? {
               OR: [
                 { name: { contains: q, mode: 'insensitive' } },
                 { description: { contains: q, mode: 'insensitive' } },
+                { comuna: { contains: q, mode: 'insensitive' } },
+                { parroquia: { contains: q, mode: 'insensitive' } },
                 { canton: { contains: q, mode: 'insensitive' } },
                 { provincia: { contains: q, mode: 'insensitive' } },
               ],
@@ -53,6 +57,7 @@ export async function GET(req: NextRequest) {
         provincia: true,
         canton: true,
         parroquia: true,
+        comuna: true,
         lat: true,
         lng: true,
         logoUrl: true,
