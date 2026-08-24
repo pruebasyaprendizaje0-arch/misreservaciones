@@ -40,6 +40,32 @@ export function NewReservationModal({ slug, isOpen, onClose }: Props) {
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerEmail, setNewCustomerEmail] = useState('');
 
+  // Tariff quote state
+  const [quote, setQuote] = useState<{
+    totalPriceCents: number;
+    basePriceCents: number;
+    effectiveMultiplier: number;
+    activeSeasonsApplied: Array<{ name: string; type: string; multiplier: number }>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!serviceId || !startsAt || !isOpen) {
+      setQuote(null);
+      return;
+    }
+    try {
+      const isoDate = new Date(startsAt).toISOString();
+      fetch(`/api/tenants/${slug}/pricing-quote?serviceId=${serviceId}&startsAt=${isoDate}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.ok && data.calculation) {
+            setQuote(data.calculation);
+          }
+        })
+        .catch(() => {});
+    } catch (e) {}
+  }, [slug, serviceId, startsAt, isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -266,6 +292,29 @@ export function NewReservationModal({ slug, isOpen, onClose }: Props) {
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
                 required
               />
+              {quote && (
+                <div className="mt-2 p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      Tarifa Final: ${(quote.totalPriceCents / 100).toFixed(2)} USD
+                    </span>
+                    {quote.effectiveMultiplier > 1.0 && (
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+                        Base: ${(quote.basePriceCents / 100).toFixed(2)} (+{Math.round((quote.effectiveMultiplier - 1) * 100)}% incremento)
+                      </span>
+                    )}
+                  </div>
+                  {quote.activeSeasonsApplied.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {quote.activeSeasonsApplied.map((r, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 font-bold text-[10px]">
+                          {r.type === 'SEASON' ? '🔥' : '🗓️'} {r.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Personal y Recurso */}

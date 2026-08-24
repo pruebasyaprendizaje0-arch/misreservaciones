@@ -9,6 +9,7 @@ type CustomSeason = {
   endDate: string;
   priceMultiplier: number;
   fixedPriceUSD?: number | null;
+  active?: boolean;
 };
 
 type PricingRules = {
@@ -69,6 +70,7 @@ export function PricingRulesModal({ slug }: Props) {
       startDate: newStartDate,
       endDate: newEndDate,
       priceMultiplier: 1 + newIncreasePercent / 100,
+      active: true,
     };
 
     setSeasons((prev) => [...prev, newSeason]);
@@ -76,6 +78,12 @@ export function PricingRulesModal({ slug }: Props) {
     setNewStartDate('');
     setNewEndDate('');
     setNewIncreasePercent(20);
+  }
+
+  function handleToggleSeasonActive(id: string) {
+    setSeasons((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, active: s.active === false ? true : false } : s))
+    );
   }
 
   function handleRemoveSeason(id: string) {
@@ -240,21 +248,46 @@ export function PricingRulesModal({ slug }: Props) {
                       <div className="divide-y divide-slate-800 border border-slate-800 rounded-lg overflow-hidden bg-slate-900">
                         {seasons.map((s) => {
                           const percent = Math.round((s.priceMultiplier - 1) * 100);
+                          const isActive = s.active !== false;
                           return (
                             <div key={s.id} className="flex items-center justify-between p-3 text-sm">
                               <div>
-                                <p className="font-bold text-white">{s.name}</p>
-                                <p className="text-xs text-slate-400">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-white">{s.name}</p>
+                                  <span
+                                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                      isActive
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                        : 'bg-slate-700 text-slate-400 border border-slate-600'
+                                    }`}
+                                  >
+                                    {isActive ? 'Activa' : 'Pausada'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-0.5">
                                   📅 {s.startDate} al {s.endDate} · Aumento: <span className="font-bold text-emerald-400">+{percent}%</span>
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSeason(s.id)}
-                                className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1"
-                              >
-                                🗑️ Eliminar
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSeasonActive(s.id)}
+                                  className={`text-xs font-bold px-2.5 py-1 rounded-lg border transition ${
+                                    isActive
+                                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+                                  }`}
+                                >
+                                  {isActive ? '⏸ Pausar' : '▶ Activar'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSeason(s.id)}
+                                  className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1"
+                                >
+                                  🗑️ Eliminar
+                                </button>
+                              </div>
                             </div>
                           );
                         })}

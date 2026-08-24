@@ -3,6 +3,7 @@ import { Prisma, type ReservationStatus, type Industry } from '@prisma/tenant';
 import { addMinutes } from 'date-fns';
 import { z } from 'zod';
 import { sendWhatsAppNotification, buildBookingConfirmationMessage } from './twilio';
+import { getPricingRules, calculateReservationPrice } from './pricing';
 
 export const createBookingSchema = z.object({
   serviceId: z.string().min(1),
@@ -46,6 +47,14 @@ export async function createBooking(
   const endsAt = data.endsAt ? data.endsAt : addMinutes(data.startsAt, service.durationMin);
   const status: ReservationStatus = 'CONFIRMED';
 
+  const pricingRules = await getPricingRules(dbUrl);
+  const pricingCalculation = calculateReservationPrice({
+    basePriceCents: service.priceCents,
+    startsAt: data.startsAt,
+    endsAt,
+    industry: service.industry,
+    pricingRules,
+  });
 
   const result = (await db.$transaction(async (tx) => {
     const overlapping = await tx.reservation.findFirst({
@@ -111,8 +120,26 @@ export async function createBooking(
         status,
         source: data.source,
         notes: data.notes,
+        metadata: {
+          pricing: pricingCalculation,
+        },
       },
     });
+
+    if (pricingCalculation.totalPriceCents > 0) {
+      await tx.payment.create({
+        data: {
+          reservationId: reservation.id,
+          amountCents: pricingCalculation.totalPriceCents,
+          currency: service.currency || 'USD',
+          status: 'PENDING',
+          provider: 'manual',
+          metadata: {
+            pricingBreakdown: pricingCalculation,
+          },
+        },
+      });
+    }
 
     return { ok: true as const, reservationId: reservation.id, endsAt, startsAt: data.startsAt };
   })) as CreateBookingResult;

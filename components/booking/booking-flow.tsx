@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 
 import { format, addDays } from 'date-fns';
 import { TermsModal } from '@/components/TermsModal';
+import { calculateReservationPrice, type PricingRules } from '@/lib/pricing';
 
 type Service = {
   id: string;
@@ -37,6 +38,7 @@ type Props = {
   tenantName?: string;
   businessPhone?: string;
   paymentDetails?: PaymentDetails;
+  pricingRules?: PricingRules;
 };
 
 type Slot = { startsAt: string; endsAt: string; available: boolean; staffId?: string; resourceId?: string };
@@ -50,6 +52,7 @@ export function BookingFlow({
   tenantName,
   businessPhone,
   paymentDetails,
+  pricingRules,
 }: Props) {
   const t = useTranslations('booking');
   const locale = useLocale();
@@ -171,6 +174,16 @@ export function BookingFlow({
       )
     : 1;
 
+  const priceQuote = service
+    ? calculateReservationPrice({
+        basePriceCents: service.priceCents,
+        startsAt: isHostal ? date : chosenSlot ? chosenSlot.startsAt : date,
+        endsAt: isHostal ? checkOutDate : chosenSlot ? chosenSlot.endsAt : undefined,
+        industry,
+        pricingRules,
+      })
+    : null;
+
   async function loadSlots() {
     if (!serviceId) return;
     setLoadingSlots(true);
@@ -268,8 +281,10 @@ export function BookingFlow({
       ? `593${cleanPhone.replace(/^0/, '')}`
       : cleanPhone;
 
+    const totalAmountStr = priceQuote ? `$${(priceQuote.totalPriceCents / 100).toFixed(2)} ${service?.currency || 'USD'}` : '';
+
     const waText = encodeURIComponent(
-      `Hola ${tenantName || ''}, acabo de realizar la reserva #${confirmation} para el servicio "${service?.name || ''}". Deseo coordinar el pago / enviar mi comprobante.`
+      `Hola ${tenantName || ''}, acabo de realizar la reserva #${confirmation} para "${service?.name || ''}" por un valor total de ${totalAmountStr}. Deseo coordinar el pago / enviar mi comprobante.`
     );
     const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${waText}` : '#';
 
@@ -288,6 +303,32 @@ export function BookingFlow({
           <h2 className="text-2xl sm:text-3xl font-black text-white">{t('success')}</h2>
           <p className="text-slate-300 text-sm font-medium leading-relaxed">{t('successMessage')}</p>
         </div>
+
+        {/* Valor Total de la Reserva */}
+        {priceQuote && (
+          <div className="bg-gradient-to-r from-emerald-950/90 to-teal-950/90 rounded-2xl p-5 border border-emerald-500/50 space-y-1.5 shadow-lg">
+            <div className="text-xs font-black text-emerald-300 uppercase tracking-widest flex items-center justify-center gap-1.5">
+              <span>💰</span> Valor Total de la Reserva
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight">
+              ${(priceQuote.totalPriceCents / 100).toFixed(2)} <span className="text-lg font-bold text-emerald-300">{service?.currency || 'USD'}</span>
+            </div>
+            {isHostal && (
+              <div className="text-xs font-bold text-emerald-200/90">
+                🌙 Estadía de {stayNights} noche(s) · ${(priceQuote.totalPriceCents / (stayNights * 100)).toFixed(2)} / noche
+              </div>
+            )}
+            {priceQuote.activeSeasonsApplied.length > 0 && (
+              <div className="flex flex-wrap gap-1 justify-center pt-1">
+                {priceQuote.activeSeasonsApplied.map((rule, idx) => (
+                  <span key={idx} className="bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded px-2 py-0.5 text-[10px] font-bold">
+                    {rule.type === 'SEASON' ? '🔥' : '🗓️'} {rule.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-indigo-950/80 rounded-2xl p-4 border border-indigo-500/40 space-y-1.5 shadow-inner">
           <div className="text-xs font-black text-indigo-300 uppercase tracking-widest">Código de Confirmación</div>
@@ -388,6 +429,17 @@ export function BookingFlow({
                   ✕
                 </button>
               </div>
+
+              {priceQuote && (
+                <div className="p-3.5 bg-emerald-950/70 rounded-2xl border border-emerald-500/40 text-center space-y-0.5">
+                  <div className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">
+                    Monto Total a Pagar / Transferir
+                  </div>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">
+                    ${(priceQuote.totalPriceCents / 100).toFixed(2)} {service?.currency || 'USD'}
+                  </div>
+                </div>
+              )}
 
               {/* Deuna QR Section */}
               <div className="space-y-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
@@ -850,10 +902,31 @@ export function BookingFlow({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-bold text-indigo-900 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold text-indigo-900 pt-1 gap-2">
                 <span>🌙 Duración de la Estadía: <span className="text-indigo-600 text-sm font-black">{stayNights} noche(s)</span></span>
-                {service && service.priceCents > 0 && (
-                  <span>Total estimado: <span className="text-slate-900 text-sm font-extrabold">${((service.priceCents * stayNights) / 100).toFixed(2)} USD</span></span>
+                {service && service.priceCents > 0 && priceQuote && (
+                  <div className="text-right">
+                    <div>
+                      Total estimado:{' '}
+                      <span className="text-slate-900 text-sm font-extrabold">
+                        ${(priceQuote.totalPriceCents / 100).toFixed(2)} {service.currency}
+                      </span>
+                      {priceQuote.effectiveMultiplier > 1.0 && (
+                        <span className="ml-1 text-[11px] text-emerald-600 font-bold">
+                          (+{Math.round((priceQuote.effectiveMultiplier - 1) * 100)}% incremento)
+                        </span>
+                      )}
+                    </div>
+                    {priceQuote.activeSeasonsApplied.length > 0 && (
+                      <div className="flex flex-wrap gap-1 justify-end mt-1">
+                        {priceQuote.activeSeasonsApplied.map((rule, idx) => (
+                          <span key={idx} className="bg-amber-100 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5 text-[10px] font-bold">
+                            {rule.type === 'SEASON' ? '🔥' : '🗓️'} {rule.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1085,10 +1158,28 @@ export function BookingFlow({
                   🌙 Estadía: <strong className="text-indigo-700">{stayNights} noche(s)</strong>
                 </span>
               )}
-              {service.priceCents > 0 && (
-                <span className="font-extrabold text-slate-900">
-                  Total: ${((service.priceCents * stayNights) / 100).toFixed(2)} {service.currency}
-                </span>
+              {service.priceCents > 0 && priceQuote && (
+                <div className="w-full mt-2 pt-2 border-t border-indigo-200/60 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+                  <div>
+                    <span className="font-black text-slate-900 text-sm block">
+                      Total: ${(priceQuote.totalPriceCents / 100).toFixed(2)} {service.currency}
+                    </span>
+                    {priceQuote.effectiveMultiplier > 1.0 && (
+                      <span className="text-[11px] font-semibold text-emerald-700 block">
+                        Base: ${(priceQuote.basePriceCents / 100).toFixed(2)} {isHostal ? '/ noche' : ''} (Tarifa ajustada +{Math.round((priceQuote.effectiveMultiplier - 1) * 100)}%)
+                      </span>
+                    )}
+                  </div>
+                  {priceQuote.activeSeasonsApplied.length > 0 && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {priceQuote.activeSeasonsApplied.map((rule, idx) => (
+                        <span key={idx} className="bg-amber-100 text-amber-900 border border-amber-300 rounded-md px-2 py-0.5 text-[11px] font-bold">
+                          {rule.type === 'SEASON' ? '🔥' : '🗓️'} {rule.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

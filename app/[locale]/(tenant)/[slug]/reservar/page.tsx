@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTenantContext } from '@/lib/tenant-context';
 import { getTenantClient } from '@/lib/db/tenant';
 import { BookingFlow } from '@/components/booking/booking-flow';
+import { getPricingRules } from '@/lib/pricing';
 
 export default async function ReservarPage({
   params,
@@ -15,7 +16,7 @@ export default async function ReservarPage({
   const db = getTenantClient(ctx.dbUrl!);
   const industry = ctx.tenant.industry as 'HOSTAL' | 'MASAJE' | 'PELUQUERIA' | 'MEDICO';
 
-  const [services, staff, resources] = await Promise.all([
+  const [services, staff, resources, pricingRules] = await Promise.all([
     db.service.findMany({
       where: { industry, active: true },
       orderBy: { name: 'asc' },
@@ -28,6 +29,7 @@ export default async function ReservarPage({
     industry === 'HOSTAL' || industry === 'MASAJE'
       ? db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
       : Promise.resolve([]),
+    getPricingRules(ctx.dbUrl!),
   ]);
 
   return (
@@ -37,6 +39,7 @@ export default async function ReservarPage({
         tenantName={ctx.tenant.name}
         businessPhone={ctx.tenant.phone || undefined}
         paymentDetails={(ctx.tenant.metadata as any)?.paymentDetails}
+        pricingRules={pricingRules}
         industry={industry}
         services={services.map((s) => ({
           id: s.id,

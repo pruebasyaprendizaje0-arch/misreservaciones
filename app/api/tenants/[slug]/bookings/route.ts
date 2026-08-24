@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
+import { getPricingRules, calculateReservationPrice } from '@/lib/pricing';
 
 async function getAuthenticatedTenant(slug: string) {
   const session = await auth();
@@ -26,7 +27,7 @@ export async function GET(
   const db = getTenantClient(tenant.dbUrl);
   const bookings = await db.reservation.findMany({
     orderBy: { startsAt: 'desc' },
-    include: { customer: true, service: true, resource: true, staff: true },
+    include: { customer: true, service: true, resource: true, staff: true, payments: true },
     take: 100,
   });
   return NextResponse.json({ bookings });
@@ -55,6 +56,15 @@ export async function POST(
     const startDate = new Date(startsAt);
     const endDate = new Date(startDate.getTime() + service.durationMin * 60 * 1000);
 
+    const pricingRules = await getPricingRules(tenant.dbUrl);
+    const pricingCalculation = calculateReservationPrice({
+      basePriceCents: service.priceCents,
+      startsAt: startDate,
+      endsAt: endDate,
+      industry: service.industry || tenant.industry,
+      pricingRules,
+    });
+
     const reservation = await db.reservation.create({
       data: {
         serviceId,
@@ -65,9 +75,25 @@ export async function POST(
         endsAt: endDate,
         status: status || 'CONFIRMED',
         notes: notes || null,
+        metadata: {
+          pricing: pricingCalculation,
+        },
       },
-      include: { customer: true, service: true, resource: true, staff: true },
+      include: { customer: true, service: true, resource: true, staff: true, payments: true },
     });
+
+    if (pricingCalculation.totalPriceCents > 0) {
+      await db.payment.create({
+        data: {
+          reservationId: reservation.id,
+          amountCents: pricingCalculation.totalPriceCents,
+          currency: service.currency || 'USD',
+          status: 'PENDING',
+          provider: 'manual',
+          metadata: { pricingBreakdown: pricingCalculation },
+        },
+      });
+    }
 
     return NextResponse.json({ ok: true, reservation }, { status: 201 });
   } catch (error) {
