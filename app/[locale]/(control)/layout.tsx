@@ -20,9 +20,11 @@ export default async function ControlLayout({ children }: { children: React.Reac
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
             {/* Logo */}
             <Link href={`/${locale}`} className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 text-base font-black text-white shadow-lg shadow-indigo-500/20">
-                R
-              </div>
+              <img
+                src="/icon.png"
+                alt="misreservaciones logo"
+                className="h-9 w-9 rounded-xl object-contain shadow-lg shadow-cyan-500/20"
+              />
               <span className="text-xl font-black text-white tracking-tight">
                 misreserva<span className="text-indigo-400 font-black">ciones</span>
               </span>
@@ -66,7 +68,7 @@ export default async function ControlLayout({ children }: { children: React.Reac
           <div className="mx-auto max-w-6xl px-4 py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-black text-white">R</div>
+                <img src="/icon.png" alt="misreservaciones logo" className="h-7 w-7 rounded-lg object-contain" />
                 <span className="text-sm font-bold text-white">misreservaciones</span>
               </div>
               <p className="text-xs text-slate-400">

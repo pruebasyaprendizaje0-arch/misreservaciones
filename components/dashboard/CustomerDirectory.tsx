@@ -38,6 +38,20 @@ type Customer = {
   reservations: Reservation[];
 };
 
+type ParsedCustomerRow = {
+  name: string;
+  email?: string;
+  phone?: string;
+  docId?: string;
+  notes?: string;
+  tags?: string[];
+  nationality?: string;
+  city?: string;
+  address?: string;
+  isValid: boolean;
+  validationError?: string;
+};
+
 type Props = {
   slug: string;
   initialCustomers: Customer[];
@@ -81,6 +95,14 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
     notes: '',
     tags: [] as string[],
   });
+
+  // Import Contact Modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+  const [importRows, setImportRows] = useState<ParsedCustomerRow[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccessBanner, setImportSuccessBanner] = useState<string | null>(null);
 
   // Edit / Form state
   const [saving, setSaving] = useState(false);
@@ -474,8 +496,248 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
     return selectedCustomer.metadata.interactionLogs;
   }, [selectedCustomer]);
 
+  // CSV Import Parser
+  function parseCSVContent(text: string): ParsedCustomerRow[] {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length === 0) return [];
+
+    const firstLine = lines[0];
+    const sep = firstLine.includes(';') && !firstLine.includes(',') ? ';' : firstLine.includes('\t') ? '\t' : ',';
+
+    function splitLine(line: string): string[] {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === sep && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+    const rawHeaders = splitLine(lines[0]);
+    const headers = rawHeaders.map(norm);
+
+    const hasNameHeader = headers.some((h) =>
+      ['nombre', 'name', 'cliente', 'huesped', 'paciente', 'contacto', 'fullname'].includes(h)
+    );
+
+    let nameIdx = -1;
+    let phoneIdx = -1;
+    let emailIdx = -1;
+    let docIdIdx = -1;
+    let notesIdx = -1;
+    let tagsIdx = -1;
+    let nationalityIdx = -1;
+    let cityIdx = -1;
+    let addressIdx = -1;
+
+    let startRow = 0;
+
+    if (hasNameHeader) {
+      startRow = 1;
+      headers.forEach((h, idx) => {
+        if (['nombre', 'name', 'cliente', 'huesped', 'paciente', 'contacto', 'fullname'].includes(h)) nameIdx = idx;
+        else if (['telefono', 'phone', 'celular', 'mobile', 'whatsapp', 'tel'].includes(h)) phoneIdx = idx;
+        else if (['email', 'correo', 'mail', 'correoelectronico'].includes(h)) emailIdx = idx;
+        else if (['cedula', 'dni', 'documento', 'id', 'ruc', 'identificacion', 'docid'].includes(h)) docIdIdx = idx;
+        else if (['notas', 'notes', 'observacion', 'observaciones', 'comentario', 'comentarios'].includes(h)) notesIdx = idx;
+        else if (['etiquetas', 'tags', 'categoria', 'clasificacion'].includes(h)) tagsIdx = idx;
+        else if (['nacionalidad', 'nationality', 'pais', 'country'].includes(h)) nationalityIdx = idx;
+        else if (['ciudad', 'city'].includes(h)) cityIdx = idx;
+        else if (['direccion', 'address'].includes(h)) addressIdx = idx;
+      });
+    } else {
+      nameIdx = 0;
+      phoneIdx = 1;
+      emailIdx = 2;
+      docIdIdx = 3;
+      notesIdx = 4;
+      tagsIdx = 5;
+      nationalityIdx = 6;
+      cityIdx = 7;
+    }
+
+    const parsedRows: ParsedCustomerRow[] = [];
+
+    for (let i = startRow; i < lines.length; i++) {
+      const cols = splitLine(lines[i]);
+      if (cols.every((c) => c === '')) continue;
+
+      const rawName = nameIdx >= 0 && cols[nameIdx] ? cols[nameIdx] : cols[0] || '';
+      const name = rawName.replace(/^["']|["']$/g, '').trim();
+
+      if (!name) {
+        parsedRows.push({
+          name: 'Sin nombre',
+          isValid: false,
+          validationError: 'Nombre requerido',
+        });
+        continue;
+      }
+
+      const email = emailIdx >= 0 && cols[emailIdx] ? cols[emailIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const phone = phoneIdx >= 0 && cols[phoneIdx] ? cols[phoneIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const docId = docIdIdx >= 0 && cols[docIdIdx] ? cols[docIdIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const notes = notesIdx >= 0 && cols[notesIdx] ? cols[notesIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const rawTags = tagsIdx >= 0 && cols[tagsIdx] ? cols[tagsIdx].replace(/^["']|["']$/g, '').trim() : '';
+      const tags = rawTags ? rawTags.split(/[;,]/).map((t) => t.trim()).filter(Boolean) : [];
+      const nationality = nationalityIdx >= 0 && cols[nationalityIdx] ? cols[nationalityIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const city = cityIdx >= 0 && cols[cityIdx] ? cols[cityIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+      const address = addressIdx >= 0 && cols[addressIdx] ? cols[addressIdx].replace(/^["']|["']$/g, '').trim() : undefined;
+
+      parsedRows.push({
+        name,
+        email: email || undefined,
+        phone: phone || undefined,
+        docId: docId || undefined,
+        notes: notes || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+        nationality: nationality || undefined,
+        city: city || undefined,
+        address: address || undefined,
+        isValid: true,
+      });
+    }
+
+    return parsedRows;
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFileName(file.name);
+    setImportError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (!content) {
+        setImportError('El archivo está vacío.');
+        return;
+      }
+      const rows = parseCSVContent(content);
+      if (rows.length === 0) {
+        setImportError('No se encontraron filas de contactos para importar.');
+      } else {
+        setImportRows(rows);
+      }
+    };
+    reader.onerror = () => {
+      setImportError('Error al leer el archivo.');
+    };
+    reader.readAsText(file);
+  }
+
+  function handleDownloadCSVTemplate() {
+    const content =
+      '\uFEFF' +
+      [
+        'Nombre,Telefono,Email,Cedula,Notas,Etiquetas,Nacionalidad,Ciudad',
+        'Carlos Mendoza,+593991234567,carlos.mendoza@ejemplo.com,1712345678,Contacto corporativo VIP,VIP;Frecuente,Ecuatoriana,Quito',
+        'Maria Fernanda Gomez,+593987654321,maria.gomez@ejemplo.com,0923456789,Cliente registrado en sitio web,Primera Vez,Ecuatoriana,Guayaquil',
+        'Juan Jose Ramirez,+593995554444,juan.ramirez@ejemplo.com,1104567890,Estadía agendada,Turista,Colombiana,Cuenca',
+      ].join('\n');
+
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `plantilla-importacion-${term.customers.toLowerCase()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleConfirmImport() {
+    const validRows = importRows.filter((r) => r.isValid);
+    if (validRows.length === 0) {
+      setImportError('No hay contactos válidos para importar.');
+      return;
+    }
+
+    setImporting(true);
+    setImportError(null);
+
+    try {
+      const res = await fetch(`/api/tenants/${slug}/customers/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customers: validRows.map((r) => ({
+            name: r.name,
+            email: r.email || null,
+            phone: r.phone || null,
+            docId: r.docId || null,
+            notes: r.notes || null,
+            tags: r.tags || [],
+            nationality: r.nationality || null,
+            city: r.city || null,
+            address: r.address || null,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Error al importar los contactos.');
+      }
+
+      const data = await res.json();
+      if (data.customers && data.customers.length > 0) {
+        setCustomers((prev) => [...data.customers, ...prev]);
+        setSelectedId(data.customers[0].id);
+      }
+
+      setShowImportModal(false);
+      setImportFileName(null);
+      setImportRows([]);
+      setImportSuccessBanner(`🎉 ¡Excelente! Se importaron ${data.count} ${term.customers.toLowerCase()} exitosamente al CRM.`);
+      setTimeout(() => setImportSuccessBanner(null), 6000);
+    } catch (err: any) {
+      setImportError(err.message || 'Ocurrió un error inesperado al importar.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6 text-slate-900 dark:text-slate-100">
+      {/* Import Success Banner */}
+      {importSuccessBanner && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center justify-between shadow-sm animate-fade-in">
+          <span>{importSuccessBanner}</span>
+          <button
+            type="button"
+            onClick={() => setImportSuccessBanner(null)}
+            className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold ml-4"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* CRM Executive Overview Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
@@ -538,27 +800,56 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 <span>👤+</span> Registrar {term.customer}
               </button>
               {plan === 'FREE' ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    alert(
-                      '🔒 La exportación a Excel / CSV está disponible únicamente en el Plan PRO ($10/m) y Plan BUSINESS ($15/m). ¡Actualiza tu suscripción en el panel principal!'
-                    )
-                  }
-                  className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
-                  title="Función PRO / BUSINESS"
-                >
-                  🔒 Exportar (PRO)
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      alert(
+                        '🔒 La importación masiva de contactos a Excel / CSV está disponible únicamente en el Plan PRO ($10/m) y Plan BUSINESS ($15/m). ¡Actualiza tu suscripción en el panel principal!'
+                      )
+                    }
+                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
+                    title="Importar contactos (PRO)"
+                  >
+                    🔒 Importar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      alert(
+                        '🔒 La exportación a Excel / CSV está disponible únicamente en el Plan PRO ($10/m) y Plan BUSINESS ($15/m). ¡Actualiza tu suscripción en el panel principal!'
+                      )
+                    }
+                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
+                    title="Exportar a CSV (PRO)"
+                  >
+                    🔒 Exportar
+                  </button>
+                </>
               ) : (
-                <a
-                  href={`/api/tenants/${slug}/customers/export`}
-                  download
-                  className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                  title="Exportar a CSV"
-                >
-                  📥 Exportar
-                </a>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportFileName(null);
+                      setImportRows([]);
+                      setImportError(null);
+                      setShowImportModal(true);
+                    }}
+                    className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    title="Importar contactos desde CSV"
+                  >
+                    📤 Importar
+                  </button>
+                  <a
+                    href={`/api/tenants/${slug}/customers/export`}
+                    download
+                    className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    title="Exportar a CSV"
+                  >
+                    📥 Exportar
+                  </a>
+                </>
               )}
             </div>
 
@@ -1531,6 +1822,171 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Customers Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-3xl rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col text-slate-100">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <span>📤</span> Importación Masiva de {term.customers} (CSV / Excel)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Carga un archivo CSV para agregar múltiples {term.customers.toLowerCase()} automáticamente a tu CRM.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="rounded-lg p-1 text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Template & File Upload Section */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <div>
+                  <p className="text-xs font-bold text-slate-200">¿No tienes el formato correcto?</p>
+                  <p className="text-[11px] text-slate-400">
+                    Descarga nuestra plantilla CSV de ejemplo con los campos compatibles.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadCSVTemplate}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-600/30 transition flex items-center gap-1.5 shrink-0"
+                >
+                  <span>📄</span> Descargar Plantilla CSV
+                </button>
+              </div>
+
+              {/* File Input Dropzone */}
+              <div className="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 rounded-xl p-6 text-center transition bg-slate-800/30">
+                <input
+                  type="file"
+                  accept=".csv,.tsv,.txt"
+                  id="csv-file-input"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="csv-file-input"
+                  className="cursor-pointer flex flex-col items-center justify-center gap-2"
+                >
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-2xl">
+                    📁
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">
+                      {importFileName ? `Archivo: ${importFileName}` : 'Haz clic para seleccionar tu archivo CSV'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">Soporta separadores por coma (,), punto y coma (;) o tabulador.</p>
+                  </div>
+                </label>
+              </div>
+
+              {importError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2">
+                  <span>⚠️</span> {importError}
+                </div>
+              )}
+            </div>
+
+            {/* Preview Table */}
+            {importRows.length > 0 && (
+              <div className="flex-1 overflow-hidden flex flex-col space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold px-1">
+                  <span>
+                    📋 Vistas previas: {importRows.filter((r) => r.isValid).length} contactos válidos
+                    {importRows.filter((r) => !r.isValid).length > 0 && (
+                      <span className="text-rose-400 font-normal ml-1">
+                        ({importRows.filter((r) => !r.isValid).length} incompletos/omitidos)
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] text-slate-400">Mostrando hasta 50 filas</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto max-h-[30vh] border border-slate-800 rounded-xl bg-slate-950">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px] sticky top-0">
+                      <tr>
+                        <th className="p-2.5">Estado</th>
+                        <th className="p-2.5">Nombre</th>
+                        <th className="p-2.5">Teléfono</th>
+                        <th className="p-2.5">Email</th>
+                        <th className="p-2.5">Cédula / DNI</th>
+                        <th className="p-2.5">Etiquetas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {importRows.slice(0, 50).map((row, idx) => (
+                        <tr key={idx} className={row.isValid ? 'hover:bg-slate-900/50' : 'bg-rose-950/20 text-rose-300'}>
+                          <td className="p-2.5">
+                            {row.isValid ? (
+                              <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">
+                                Válido
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded">
+                                {row.validationError || 'Inválido'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-2.5 font-bold text-slate-100">{row.name}</td>
+                          <td className="p-2.5">{row.phone || '-'}</td>
+                          <td className="p-2.5">{row.email || '-'}</td>
+                          <td className="p-2.5">{row.docId || '-'}</td>
+                          <td className="p-2.5">
+                            {row.tags && row.tags.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {row.tags.map((t, tidx) => (
+                                  <span key={tidx} className="bg-slate-800 text-[9px] px-1 py-0.2 rounded border border-slate-700">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                disabled={importing || importRows.filter((r) => r.isValid).length === 0}
+                className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow disabled:opacity-50 flex items-center gap-2"
+              >
+                {importing ? (
+                  <>Importando contactos…</>
+                ) : (
+                  <>🚀 Confirmar e Importar ({importRows.filter((r) => r.isValid).length})</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
