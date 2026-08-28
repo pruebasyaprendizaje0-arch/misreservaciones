@@ -29,8 +29,24 @@ function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
   return NextResponse.json({ error: err }, { status });
 }
 
+import {
+  isCentralApiEnabled,
+  resolveCentralTenantBySlug,
+  getCentralResources,
+  createCentralResource,
+} from '@/lib/central-api';
+
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
+
+  if (isCentralApiEnabled()) {
+    const central = await resolveCentralTenantBySlug(slug);
+    if (central) {
+      const resources = await getCentralResources(central.branch.id);
+      return NextResponse.json({ resources });
+    }
+  }
+
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
   const resources = await owner.db.resource.findMany({ orderBy: { name: 'asc' } });
@@ -39,6 +55,22 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
+  const json = await req.json().catch(() => null);
+  const parsed = createSchema.safeParse(json);
+  if (!parsed.success)
+    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
+
+  if (isCentralApiEnabled()) {
+    const session = await auth();
+    const accessToken = (session as any)?.accessToken;
+    const central = await resolveCentralTenantBySlug(slug);
+    if (central && accessToken) {
+      const res = await createCentralResource(central.branch.id, parsed.data, accessToken);
+      if (res.ok) return NextResponse.json({ resource: res.resource }, { status: 201 });
+      return NextResponse.json({ error: res.error || 'Error al crear recurso central' }, { status: 400 });
+    }
+  }
+
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
@@ -50,11 +82,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
       { status: 403 }
     );
   }
-
-  const json = await req.json().catch(() => null);
-  const parsed = createSchema.safeParse(json);
-  if (!parsed.success)
-    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
 
   const typeMap: Record<string, 'HABITACION' | 'MESA' | 'ASIENTO' | 'CONSULTORIO' | 'SILLA'> = {
     HOSTAL: 'HABITACION',
@@ -75,7 +102,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
       type,
     },
   });
-
 
   return NextResponse.json({ resource }, { status: 201 });
 }

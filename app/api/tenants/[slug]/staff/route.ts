@@ -28,8 +28,24 @@ function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
   return NextResponse.json({ error: err }, { status });
 }
 
+import {
+  isCentralApiEnabled,
+  resolveCentralTenantBySlug,
+  getCentralStaff,
+  createCentralStaff,
+} from '@/lib/central-api';
+
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
+
+  if (isCentralApiEnabled()) {
+    const central = await resolveCentralTenantBySlug(slug);
+    if (central) {
+      const staff = await getCentralStaff(central.branch.id);
+      return NextResponse.json({ staff });
+    }
+  }
+
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
   const staff = await owner.db.staff.findMany({ orderBy: { name: 'asc' } });
@@ -38,6 +54,22 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
+  const json = await req.json().catch(() => null);
+  const parsed = createSchema.safeParse(json);
+  if (!parsed.success)
+    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
+
+  if (isCentralApiEnabled()) {
+    const session = await auth();
+    const accessToken = (session as any)?.accessToken;
+    const central = await resolveCentralTenantBySlug(slug);
+    if (central && accessToken) {
+      const res = await createCentralStaff(central.branch.id, parsed.data, accessToken);
+      if (res.ok) return NextResponse.json({ member: res.staff, staff: res.staff }, { status: 201 });
+      return NextResponse.json({ error: res.error || 'Error al crear personal central' }, { status: 400 });
+    }
+  }
+
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
@@ -50,11 +82,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     );
   }
 
-  const json = await req.json().catch(() => null);
-  const parsed = createSchema.safeParse(json);
-  if (!parsed.success)
-    return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
-
   const member = await owner.db.staff.create({ data: parsed.data });
-  return NextResponse.json({ member }, { status: 201 });
+  return NextResponse.json({ member, staff: member }, { status: 201 });
 }

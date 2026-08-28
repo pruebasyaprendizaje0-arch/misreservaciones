@@ -32,21 +32,23 @@ const ownerPatchSchema = z.object({
 
 const fullPatchSchema = adminPatchSchema.merge(ownerPatchSchema);
 
+import {
+  isCentralApiEnabled,
+  resolveCentralTenantBySlug,
+  updateCentralBusiness,
+  updateCentralBranch,
+} from '@/lib/central-api';
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
     const { slug } = await ctx.params;
+    const accessToken = (session as any)?.accessToken;
     const userId = (session.user as { id: string }).id;
     const userRole = (session.user as { role?: string }).role;
     const isAdmin = userRole === 'PLATFORM_ADMIN';
-
-    const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
-    if (!tenant) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
-
-    const isOwner = tenant.ownerId === userId;
-    if (!isOwner && !isAdmin) return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
 
     const json = await req.json().catch(() => null);
 
@@ -56,6 +58,45 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: str
       console.error('INVALID PATCH INPUT:', parsed.error.issues);
       return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
     }
+
+    // 1. Si la API Central está activa, actualizar negocio y sucursal centrales
+    if (isCentralApiEnabled() && accessToken) {
+      const central = await resolveCentralTenantBySlug(slug);
+      if (central) {
+        const businessPayload: any = {};
+        if (parsed.data.name) businessPayload.name = parsed.data.name;
+        if (parsed.data.description !== undefined) businessPayload.description = parsed.data.description;
+        if (parsed.data.logoUrl !== undefined) businessPayload.logoUrl = parsed.data.logoUrl;
+        if (parsed.data.coverUrl !== undefined) businessPayload.coverUrl = parsed.data.coverUrl;
+        if (parsed.data.phone !== undefined) businessPayload.whatsapp = parsed.data.phone;
+
+        if (Object.keys(businessPayload).length > 0) {
+          await updateCentralBusiness(central.business.id, businessPayload, accessToken);
+        }
+
+        const branchPayload: any = {};
+        if (parsed.data.address !== undefined) branchPayload.address = parsed.data.address;
+        if (parsed.data.canton !== undefined) branchPayload.city = parsed.data.canton;
+        if (parsed.data.provincia !== undefined) branchPayload.provincia = parsed.data.provincia;
+        if (parsed.data.phone !== undefined) branchPayload.phone = parsed.data.phone;
+        if (parsed.data.lat !== undefined) branchPayload.lat = parsed.data.lat;
+        if (parsed.data.lng !== undefined) branchPayload.lng = parsed.data.lng;
+
+        if (Object.keys(branchPayload).length > 0) {
+          await updateCentralBranch(central.branch.id, branchPayload, accessToken);
+        }
+
+        invalidateTenantCache(slug);
+        return NextResponse.json({ ok: true, message: 'Perfil central actualizado' });
+      }
+    }
+
+    // 2. Fallback Prisma Control local
+    const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
+    if (!tenant) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+
+    const isOwner = tenant.ownerId === userId;
+    if (!isOwner && !isAdmin) return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
 
     const updated = await prismaControl.tenant.update({
       where: { slug },

@@ -35,29 +35,65 @@ const createSchema = z.object({
   ownerName: z.string().min(2).max(120).optional(),
 });
 
-/**
- * POST /api/tenants
- * Auth: PLATFORM_ADMIN, or first user signing up (creates their owner account).
- * Body: { name, slug, industry, ownerEmail?, ownerPassword?, ownerName? }
- */
+import {
+  isCentralApiEnabled,
+  createCentralBusiness,
+  getCentralBusinesses,
+} from '@/lib/central-api';
+
 export async function POST(req: NextRequest) {
   try {
-    await ensureControlSchema();
     const session = await auth().catch(() => null);
+    const accessToken = (session as any)?.accessToken;
     const isPlatformAdmin = session?.user && (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
 
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown-ip';
-    if (!isPlatformAdmin && isRateLimited(clientIp)) {
-      return NextResponse.json(
-        { error: 'RATE_LIMIT_EXCEEDED', message: 'Ha excedido el límite de registros permitidos. Intente más tarde.' },
-        { status: 429 }
-      );
-    }
     const json = await req.json().catch(() => null);
     const parsed = createSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
     }
+
+    let slug: string;
+    try {
+      slug = normalizeSlug(parsed.data.slug);
+    } catch {
+      return NextResponse.json({ error: 'SLUG_INVALID' }, { status: 400 });
+    }
+
+    // 1. Si API Central está activa, crear negocio en API Central
+    if (isCentralApiEnabled() && accessToken) {
+      const centralRes = await createCentralBusiness(
+        {
+          name: parsed.data.name,
+          slug,
+          industry: parsed.data.industry,
+        },
+        accessToken
+      );
+
+      if (centralRes.ok && centralRes.business) {
+        return NextResponse.json(
+          {
+            ok: true,
+            tenant: {
+              id: centralRes.business.id,
+              slug: centralRes.business.slug,
+              name: centralRes.business.name,
+              industry: centralRes.business.industry,
+            },
+          },
+          { status: 201 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: 'CENTRAL_CREATION_FAILED', message: centralRes.error || 'No se pudo crear el negocio central' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 2. Fallback local Prisma Control
+    await ensureControlSchema();
 
     let ownerId: string;
     let createdOwner = false;
@@ -88,13 +124,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OWNER_REQUIRED' }, { status: 400 });
     }
 
-    let slug: string;
-    try {
-      slug = normalizeSlug(parsed.data.slug);
-    } catch {
-      return NextResponse.json({ error: 'SLUG_INVALID' }, { status: 400 });
-    }
-
     const input: ProvisionInput = {
       slug,
       name: parsed.data.name,
@@ -108,12 +137,9 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('[POST /api/tenants] provisioning failed', err);
       if (createdOwner) {
-        // Roll back the owner user we just created
         try {
           await prismaControl.user.delete({ where: { id: ownerId } });
-        } catch (e) {
-          console.error('rollback failed', e);
-        }
+        } catch (e) {}
       }
       return NextResponse.json(
         { error: 'PROVISIONING_FAILED', message: (err as Error).message },
@@ -132,7 +158,29 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const session = await auth().catch(() => null);
-    if (!session?.user || (session.user as { role?: string }).role !== 'PLATFORM_ADMIN') {
+    const accessToken = (session as any)?.accessToken;
+    if (!session?.user) {
+      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
+    // 1. Si la API Central está activa, listar negocios centrales
+    if (isCentralApiEnabled() && accessToken) {
+      const businesses = await getCentralBusinesses(accessToken);
+      const mappedTenants = businesses.map((b) => ({
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        industry: b.industry,
+        status: 'ACTIVE',
+        plan: b.plan || 'FREE',
+        createdAt: b.createdAt,
+        owner: { email: session.user?.email || '', name: session.user?.name || '' },
+      }));
+      return NextResponse.json({ tenants: mappedTenants });
+    }
+
+    // 2. Fallback Prisma local
+    if ((session.user as { role?: string }).role !== 'PLATFORM_ADMIN') {
       return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
     }
     const tenants = await prismaControl.tenant.findMany({

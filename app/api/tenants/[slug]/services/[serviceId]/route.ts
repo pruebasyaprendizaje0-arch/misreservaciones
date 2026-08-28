@@ -29,18 +29,34 @@ function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
   return NextResponse.json({ error: err }, { status });
 }
 
+import {
+  isCentralApiEnabled,
+  updateCentralService,
+  deleteCentralService,
+} from '@/lib/central-api';
+
 export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ slug: string; serviceId: string }> }
 ) {
   const { slug, serviceId } = await ctx.params;
-  const owner = await resolveOwnerDb(slug);
-  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
-
   const json = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success)
     return NextResponse.json({ error: 'INVALID_INPUT', issues: parsed.error.issues }, { status: 400 });
+
+  if (isCentralApiEnabled()) {
+    const session = await auth();
+    const accessToken = (session as any)?.accessToken;
+    if (accessToken) {
+      const res = await updateCentralService(serviceId, parsed.data, accessToken);
+      if (res.ok) return NextResponse.json({ service: res.service });
+      return NextResponse.json({ error: res.error || 'Error al actualizar servicio central' }, { status: 400 });
+    }
+  }
+
+  const owner = await resolveOwnerDb(slug);
+  if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 
   try {
     const service = await owner.db.service.update({
@@ -58,6 +74,17 @@ export async function DELETE(
   ctx: { params: Promise<{ slug: string; serviceId: string }> }
 ) {
   const { slug, serviceId } = await ctx.params;
+
+  if (isCentralApiEnabled()) {
+    const session = await auth();
+    const accessToken = (session as any)?.accessToken;
+    if (accessToken) {
+      const res = await deleteCentralService(serviceId, accessToken);
+      if (res.ok) return NextResponse.json({ ok: true });
+      return NextResponse.json({ error: res.error || 'Error al eliminar servicio central' }, { status: 400 });
+    }
+  }
+
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
 

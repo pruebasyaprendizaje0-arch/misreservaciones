@@ -318,3 +318,204 @@ export async function updateCentralReservationStatus(
 
   return { ok: false, error: res.error || 'No se pudo actualizar el estado de la reservación en la API Central' };
 }
+
+/**
+ * Crea un nuevo negocio en la API Central (requiere JWT)
+ */
+export async function createCentralBusiness(payload: any, token: string): Promise<{ ok: boolean; business?: CentralBusiness; error?: string }> {
+  const res = await fetchCentralApi<{ business: CentralBusiness }>('/v1/businesses', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.business) return { ok: true, business: res.data.business };
+  return { ok: false, error: res.error || 'Error al crear el negocio en la API Central' };
+}
+
+/**
+ * Actualiza un negocio en la API Central (requiere JWT)
+ */
+export async function updateCentralBusiness(businessId: string, payload: any, token: string): Promise<{ ok: boolean; business?: CentralBusiness; error?: string }> {
+  const res = await fetchCentralApi<{ business: CentralBusiness }>(`/v1/businesses/${businessId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.business) return { ok: true, business: res.data.business };
+  return { ok: false, error: res.error || 'Error al actualizar el negocio en la API Central' };
+}
+
+/**
+ * Crea una nueva sucursal en la API Central (requiere JWT)
+ */
+export async function createCentralBranch(businessId: string, payload: any, token: string): Promise<{ ok: boolean; branch?: CentralBranch; error?: string }> {
+  const res = await fetchCentralApi<{ branch: CentralBranch }>(`/v1/businesses/${businessId}/branches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.branch) return { ok: true, branch: res.data.branch };
+  return { ok: false, error: res.error || 'Error al crear la sucursal en la API Central' };
+}
+
+/**
+ * Actualiza una sucursal en la API Central (requiere JWT)
+ */
+export async function updateCentralBranch(branchId: string, payload: any, token: string): Promise<{ ok: boolean; branch?: CentralBranch; error?: string }> {
+  const res = await fetchCentralApi<{ branch: CentralBranch }>(`/v1/branches/${branchId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.branch) return { ok: true, branch: res.data.branch };
+  return { ok: false, error: res.error || 'Error al actualizar la sucursal en la API Central' };
+}
+
+/**
+ * Elimina/desactiva una sucursal en la API Central (requiere JWT)
+ */
+export async function deleteCentralBranch(branchId: string, token: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetchCentralApi<any>(`/v1/branches/${branchId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) return { ok: true };
+  return { ok: false, error: res.error || 'Error al eliminar la sucursal en la API Central' };
+}
+
+// --- SERVICIOS ---
+export async function createCentralService(branchId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ service: any }>(`/v1/branches/${branchId}/services`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.service) return { ok: true, service: res.data.service };
+  return { ok: false, error: res.error || 'Error al crear el servicio' };
+}
+
+export async function getCentralServices(branchId: string) {
+  const res = await fetchCentralApi<{ services: any[] }>(`/v1/branches/${branchId}/services`);
+  return res.ok && res.data ? res.data.services : [];
+}
+
+export async function updateCentralService(serviceId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ service: any }>(`/v1/services/${serviceId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.service) return { ok: true, service: res.data.service };
+  return { ok: false, error: res.error || 'Error al actualizar el servicio' };
+}
+
+export async function deleteCentralService(serviceId: string, token: string) {
+  const res = await fetchCentralApi<any>(`/v1/services/${serviceId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ok: res.ok, error: res.error };
+}
+
+// --- RECURSOS ---
+export async function createCentralResource(branchId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ resource: any }>(`/v1/branches/${branchId}/resources`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.resource) return { ok: true, resource: res.data.resource };
+  return { ok: false, error: res.error || 'Error al crear el recurso' };
+}
+
+export async function getCentralResources(branchId: string) {
+  const res = await fetchCentralApi<{ resources: any[] }>(`/v1/branches/${branchId}/resources`);
+  return res.ok && res.data ? res.data.resources : [];
+}
+
+export async function updateCentralResource(resourceId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ resource: any }>(`/v1/resources/${resourceId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.resource) return { ok: true, resource: res.data.resource };
+  return { ok: false, error: res.error || 'Error al actualizar el recurso' };
+}
+
+export async function deleteCentralResource(resourceId: string, token: string) {
+  const res = await fetchCentralApi<any>(`/v1/resources/${resourceId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ok: res.ok, error: res.error };
+}
+
+// --- PERSONAL (STAFF) ---
+export async function createCentralStaff(branchId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ staff: any }>(`/v1/branches/${branchId}/staff`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.staff) return { ok: true, staff: res.data.staff };
+  return { ok: false, error: res.error || 'Error al crear el personal' };
+}
+
+export async function getCentralStaff(branchId: string) {
+  const res = await fetchCentralApi<{ staff: any[] }>(`/v1/branches/${branchId}/staff`);
+  return res.ok && res.data ? res.data.staff : [];
+}
+
+export async function updateCentralStaff(staffId: string, payload: any, token: string) {
+  const res = await fetchCentralApi<{ staff: any }>(`/v1/staff/${staffId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok && res.data?.staff) return { ok: true, staff: res.data.staff };
+  return { ok: false, error: res.error || 'Error al actualizar el personal' };
+}
+
+export async function deleteCentralStaff(staffId: string, token: string) {
+  const res = await fetchCentralApi<any>(`/v1/staff/${staffId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ok: res.ok, error: res.error };
+}
+
+// --- HORARIOS / DISPONIBILIDAD ---
+export async function getCentralAvailability(branchId: string) {
+  const res = await fetchCentralApi<{ rules: any[]; exceptions: any[] }>(`/v1/branches/${branchId}/availability`);
+  return res.ok && res.data ? res.data : { rules: [], exceptions: [] };
+}
+
+export async function setCentralAvailability(branchId: string, rules: any[], token: string) {
+  const res = await fetchCentralApi<{ rules: any[]; exceptions: any[] }>(`/v1/branches/${branchId}/availability`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ rules }),
+  });
+  if (res.ok && res.data) return { ok: true, availability: res.data };
+  return { ok: false, error: res.error || 'Error al actualizar horarios' };
+}
+
+export async function createCentralAvailabilityException(branchId: string, exception: any, token: string) {
+  const res = await fetchCentralApi<{ exception: any }>(`/v1/branches/${branchId}/availability/exceptions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(exception),
+  });
+  if (res.ok && res.data?.exception) return { ok: true, exception: res.data.exception };
+  return { ok: false, error: res.error || 'Error al crear excepción de disponibilidad' };
+}
+
+export async function deleteCentralAvailabilityException(exceptionId: string, token: string) {
+  const res = await fetchCentralApi<any>(`/v1/availability/exceptions/${exceptionId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ok: res.ok, error: res.error };
+}
+
