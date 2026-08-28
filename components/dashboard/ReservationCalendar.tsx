@@ -358,8 +358,9 @@ export function ReservationCalendar({ slug, initialEvents, locale }: Props) {
                     Notas
                   </div>
                   <p className="bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs italic">
-                    "{selectedEvent.notes}"
+                    &quot;{selectedEvent.notes}&quot;
                   </p>
+
                 </div>
               )}
             </div>

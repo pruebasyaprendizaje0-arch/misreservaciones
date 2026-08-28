@@ -309,8 +309,9 @@ export default async function DirectoryPage({
 
                       {t.description && (
                         <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                          "{t.description}"
+                          &quot;{t.description}&quot;
                         </p>
+
                       )}
 
                       {t.address && (

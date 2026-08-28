@@ -109,18 +109,34 @@ export default async function TenantHome({
   let resources: any[] = [];
 
   try {
-    const db = getTenantClient(ctx.dbUrl!);
-    [services, staffList, resources] = await Promise.all([
-      db.service.findMany({
-        where: { active: true },
-        orderBy: { createdAt: 'asc' },
-      }),
-      db.staff.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
-      db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
-    ]);
+    if (ctx.dbUrl) {
+      const db = getTenantClient(ctx.dbUrl);
+      [services, staffList, resources] = await Promise.all([
+        db.service.findMany({
+          where: { active: true },
+          orderBy: { createdAt: 'asc' },
+        }),
+        db.staff.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
+        db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
+      ]);
+    } else {
+      services = [
+        {
+          id: 'serv-central',
+          name: 'Reservación / Atenciones',
+          description: 'Reserva tu mesa, cita o espacio directamente en la sucursal.',
+          durationMin: 60,
+          priceCents: 0,
+          currency: 'USD',
+          active: true,
+          industry: ctx.tenant?.industry || 'RESTAURANTE',
+        },
+      ];
+    }
   } catch (err) {
     console.error(`[TenantHome] Warning: Could not fetch DB data for ${slug}:`, err);
   }
+
 
   const tenant = ctx.tenant;
   const industry = tenant.industry;
@@ -447,8 +463,9 @@ export default async function TenantHome({
                   {isEn ? `About ${tenant.name}` : `Sobre ${tenant.name}`}
                 </h3>
                 <p className="text-base sm:text-lg text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-                  "{tenant.description}"
+                  &quot;{tenant.description}&quot;
                 </p>
+
               </div>
             </div>
           </div>

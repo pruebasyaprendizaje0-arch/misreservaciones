@@ -4,6 +4,7 @@ import { addMinutes } from 'date-fns';
 import { z } from 'zod';
 import { sendWhatsAppNotification, buildBookingConfirmationMessage } from './twilio';
 import { getPricingRules, calculateReservationPrice } from './pricing';
+import { isCentralApiEnabled, createCentralReservation, updateCentralReservationStatus } from './central-api';
 
 export const createBookingSchema = z.object({
   serviceId: z.string().min(1),
@@ -32,26 +33,72 @@ export type CreateBookingResult =
  * Creates a reservation atomically with a conflict check.
  */
 export async function createBooking(
-  dbUrl: string,
+  dbUrl: string | null | undefined,
   input: CreateBookingInput,
-  meta?: { businessName?: string }
+  meta?: {
+    businessName?: string;
+    centralBranchId?: string;
+    serviceName?: string;
+    resourceName?: string;
+    staffName?: string;
+  }
 ): Promise<CreateBookingResult> {
   const parsed = createBookingSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'INVALID_INPUT' };
   const data = parsed.data;
 
+  const defaultDurationMin = 60;
+  const endsAt = data.endsAt ? data.endsAt : addMinutes(data.startsAt, defaultDurationMin);
+
+  // 1. Intentar creación en la API Central si hay sucursal central especificada o API activa
+  if (meta?.centralBranchId || isCentralApiEnabled()) {
+    const branchId = meta?.centralBranchId;
+    if (branchId) {
+      const centralRes = await createCentralReservation(branchId, {
+        customerName: data.customer.name,
+        customerEmail: data.customer.email || null,
+        customerPhone: data.customer.phone || null,
+        serviceName: meta?.serviceName || data.serviceId,
+        resourceName: meta?.resourceName || data.resourceId || null,
+        staffName: meta?.staffName || data.staffId || null,
+        startsAt: data.startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        notes: data.notes || data.customer.notes || null,
+      });
+
+      if (centralRes.ok && centralRes.reservation) {
+        return {
+          ok: true,
+          reservationId: centralRes.reservation.id,
+          startsAt: new Date(centralRes.reservation.startsAt),
+          endsAt: new Date(centralRes.reservation.endsAt),
+        };
+      } else {
+        console.warn('[booking] Falló la creación central:', centralRes.error);
+        if (!dbUrl) {
+          return { ok: false, error: 'INVALID_INPUT' };
+        }
+      }
+    }
+  }
+
+  // 2. Fallback local Prisma tenant
+  if (!dbUrl) {
+    return { ok: false, error: 'INVALID_INPUT' };
+  }
+
   const db = getTenantClient(dbUrl);
   const service = await db.service.findUnique({ where: { id: data.serviceId } });
   if (!service || !service.active) return { ok: false, error: 'SERVICE_NOT_FOUND' };
 
-  const endsAt = data.endsAt ? data.endsAt : addMinutes(data.startsAt, service.durationMin);
+  const computedEndsAt = data.endsAt ? data.endsAt : addMinutes(data.startsAt, service.durationMin);
   const status: ReservationStatus = 'CONFIRMED';
 
   const pricingRules = await getPricingRules(dbUrl);
   const pricingCalculation = calculateReservationPrice({
     basePriceCents: service.priceCents,
     startsAt: data.startsAt,
-    endsAt,
+    endsAt: computedEndsAt,
     industry: service.industry,
     pricingRules,
   });
@@ -60,7 +107,7 @@ export async function createBooking(
     const overlapping = await tx.reservation.findFirst({
       where: {
         status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN'] },
-        startsAt: { lt: endsAt },
+        startsAt: { lt: computedEndsAt },
         endsAt: { gt: data.startsAt },
         ...(data.staffId ? { staffId: data.staffId } : {}),
         ...(data.resourceId ? { resourceId: data.resourceId } : {}),
@@ -72,7 +119,6 @@ export async function createBooking(
       return { ok: false, error: 'SLOT_TAKEN' as const };
     }
 
-    // Find or create customer by email (if provided)
     let customerId: string;
     if (data.customer.email) {
       const existing = await tx.customer.findFirst({
@@ -116,7 +162,7 @@ export async function createBooking(
         staffId: data.staffId,
         resourceId: data.resourceId,
         startsAt: data.startsAt,
-        endsAt,
+        endsAt: computedEndsAt,
         status,
         source: data.source,
         notes: data.notes,
@@ -141,10 +187,9 @@ export async function createBooking(
       });
     }
 
-    return { ok: true as const, reservationId: reservation.id, endsAt, startsAt: data.startsAt };
+    return { ok: true as const, reservationId: reservation.id, endsAt: computedEndsAt, startsAt: data.startsAt };
   })) as CreateBookingResult;
 
-  // Fire-and-forget: send WhatsApp confirmation if customer has phone
   if (result.ok && data.customer.phone) {
     const serviceName = service.name;
     const businessName = meta?.businessName ?? 'Tu negocio';
@@ -157,7 +202,6 @@ export async function createBooking(
       locale: data.locale,
       notes: data.notes,
     });
-    // Do not await — run in background without blocking the HTTP response
     sendWhatsAppNotification(data.customer.phone, message).catch((err) =>
       console.error('[booking] WhatsApp notification error', err)
     );
@@ -166,8 +210,13 @@ export async function createBooking(
   return result;
 }
 
+export async function cancelBooking(dbUrl: string | null | undefined, reservationId: string, token?: string): Promise<boolean> {
+  if (token && isCentralApiEnabled()) {
+    const res = await updateCentralReservationStatus(reservationId, 'CANCELLED', token);
+    if (res.ok) return true;
+  }
 
-export async function cancelBooking(dbUrl: string, reservationId: string): Promise<boolean> {
+  if (!dbUrl) return false;
   const db = getTenantClient(dbUrl);
   try {
     await db.reservation.update({
@@ -184,3 +233,4 @@ export async function cancelBooking(dbUrl: string, reservationId: string): Promi
 }
 
 export type IndustryService = Industry;
+

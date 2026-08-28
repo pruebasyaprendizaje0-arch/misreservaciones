@@ -9,6 +9,8 @@ import { ReservationCalendar } from '@/components/dashboard/ReservationCalendar'
 import { DashboardHeaderActions } from '@/components/dashboard/DashboardHeaderActions';
 import { SuperadminBanner } from '@/components/dashboard/SuperadminBanner';
 import { getIndustryConfig } from '@/lib/industries';
+import { isCentralApiEnabled, resolveCentralTenantBySlug, getCentralBranchReservations } from '@/lib/central-api';
+
 
 export default async function TenantDashboard({
   params,
@@ -26,19 +28,37 @@ export default async function TenantDashboard({
   const userRole = (session.user as { role?: string }).role;
   const isSuperAdmin = userRole === 'PLATFORM_ADMIN';
 
-  const tenant = await prismaControl.tenant.findUnique({
-    where: { slug },
-    include: { owner: { select: { email: true, name: true } } },
-  });
-  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  let tenant: any = null;
+  let centralBranchId: string | null = null;
+
+  if (isCentralApiEnabled()) {
+    const central = await resolveCentralTenantBySlug(slug);
+    if (central) {
+      tenant = {
+        id: central.business.id,
+        slug: central.business.slug,
+        name: central.business.name,
+        industry: central.business.industry || 'RESTAURANTE',
+        dbUrl: '',
+        owner: { email: session.user.email, name: session.user.name },
+      };
+      centralBranchId = central.branch.id;
+    }
+  }
+
+  if (!tenant) {
+    tenant = await prismaControl.tenant.findUnique({
+      where: { slug },
+      include: { owner: { select: { email: true, name: true } } },
+    });
+    if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  }
 
   const config = getIndustryConfig(tenant.industry);
 
-  const db = getTenantClient(tenant.dbUrl);
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
-
   const startRange = addDays(todayStart, -30);
   const endRange = addDays(todayStart, 90);
 
@@ -47,25 +67,55 @@ export default async function TenantDashboard({
   let servicesCount = 0;
   let customersCount = 0;
 
-  try {
-    const db = getTenantClient(tenant.dbUrl);
-    [today, calendarReservations, servicesCount, customersCount] = await Promise.all([
-      db.reservation.findMany({
-        where: { startsAt: { gte: todayStart, lte: todayEnd } },
-        orderBy: { startsAt: 'asc' },
-        include: { customer: true, service: true, resource: true, staff: true },
-      }),
-      db.reservation.findMany({
-        where: { startsAt: { gte: startRange, lte: endRange } },
-        orderBy: { startsAt: 'asc' },
-        include: { customer: true, service: true, resource: true, staff: true },
-      }),
-      db.service.count({ where: { active: true } }),
-      db.customer.count(),
-    ]);
-  } catch (err) {
-    console.error(`[DashboardPage] Warning: Could not fetch DB data for ${slug}:`, err);
+  if (isCentralApiEnabled() && centralBranchId && (session as any).accessToken) {
+    try {
+      const centralBookings = await getCentralBranchReservations(centralBranchId, (session as any).accessToken);
+      calendarReservations = centralBookings.map((b) => ({
+        id: b.id,
+        startsAt: new Date(b.startsAt),
+        endsAt: new Date(b.endsAt),
+        status: b.status,
+        notes: b.notes,
+        customer: {
+          name: b.customerName,
+          email: b.customerEmail,
+          phone: b.customerPhone,
+        },
+        service: { name: b.serviceName || 'Servicio' },
+        resource: b.resourceName ? { name: b.resourceName } : null,
+        staff: b.staffName ? { name: b.staffName } : null,
+      }));
+
+      today = calendarReservations.filter(
+        (r) => r.startsAt >= todayStart && r.startsAt <= todayEnd
+      );
+      servicesCount = 1;
+      customersCount = new Set(centralBookings.map((b) => b.customerEmail || b.customerName)).size;
+    } catch (err) {
+      console.warn('[DashboardPage] Warning: Error fetching Central API data:', err);
+    }
+  } else if (tenant.dbUrl) {
+    try {
+      const db = getTenantClient(tenant.dbUrl);
+      [today, calendarReservations, servicesCount, customersCount] = await Promise.all([
+        db.reservation.findMany({
+          where: { startsAt: { gte: todayStart, lte: todayEnd } },
+          orderBy: { startsAt: 'asc' },
+          include: { customer: true, service: true, resource: true, staff: true },
+        }),
+        db.reservation.findMany({
+          where: { startsAt: { gte: startRange, lte: endRange } },
+          orderBy: { startsAt: 'asc' },
+          include: { customer: true, service: true, resource: true, staff: true },
+        }),
+        db.service.count({ where: { active: true } }),
+        db.customer.count(),
+      ]);
+    } catch (err) {
+      console.error(`[DashboardPage] Warning: Could not fetch DB data for ${slug}:`, err);
+    }
   }
+
 
 
   const events = calendarReservations.map((r: any) => ({
@@ -312,8 +362,9 @@ export default async function TenantDashboard({
                   <div className="pt-2 border-t border-slate-50 dark:border-slate-800">
                     <span className="text-xs font-semibold text-slate-400 uppercase block">Descripción</span>
                     <p className="text-slate-600 dark:text-slate-400 text-xs mt-1 leading-relaxed italic">
-                      "{tenant.description}"
+                      &quot;{tenant.description}&quot;
                     </p>
+
                   </div>
                 )}
               </div>

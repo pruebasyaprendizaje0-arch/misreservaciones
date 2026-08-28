@@ -243,7 +243,8 @@ export function ClinicalHistory({
         {/* Timeline of past consultations */}
         {consultations.length === 0 ? (
           <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-xs italic">
-            No hay atenciones médicas registradas aún para este paciente. Haz clic en "Nueva Consulta Médica" para crear el primer registro.
+            No hay atenciones médicas registradas aún para este paciente. Haz clic en &quot;Nueva Consulta Médica&quot; para crear el primer registro.
+
           </div>
         ) : (
           <div className="space-y-4">

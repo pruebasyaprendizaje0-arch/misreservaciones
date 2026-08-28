@@ -13,24 +13,52 @@ export default async function ReservarPage({
   const ctx = await getTenantContext(slug);
   if (!ctx.tenant) notFound();
 
-  const db = getTenantClient(ctx.dbUrl!);
-  const industry = ctx.tenant.industry as 'HOSTAL' | 'MASAJE' | 'PELUQUERIA' | 'MEDICO';
+  const industry = (ctx.tenant.industry as any) || 'RESTAURANTE';
+  let services: any[] = [];
+  let staff: any[] = [];
+  let resources: any[] = [];
+  let pricingRules: any = { rules: [] };
 
-  const [services, staff, resources, pricingRules] = await Promise.all([
-    db.service.findMany({
-      where: { industry, active: true },
-      orderBy: { name: 'asc' },
-    }),
-    db.staff.findMany({
-      where: { active: true },
-      orderBy: { name: 'asc' },
-      include: { services: { include: { service: true } } },
-    }),
-    industry === 'HOSTAL' || industry === 'MASAJE'
-      ? db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
-      : Promise.resolve([]),
-    getPricingRules(ctx.dbUrl!),
-  ]);
+  if (ctx.dbUrl) {
+    try {
+      const db = getTenantClient(ctx.dbUrl);
+      const [sList, stList, rList, pRules] = await Promise.all([
+        db.service.findMany({
+          where: { active: true },
+          orderBy: { name: 'asc' },
+        }),
+        db.staff.findMany({
+          where: { active: true },
+          orderBy: { name: 'asc' },
+          include: { services: { include: { service: true } } },
+        }),
+        industry === 'HOSTAL' || industry === 'MASAJE'
+          ? db.resource.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
+          : Promise.resolve([]),
+        getPricingRules(ctx.dbUrl),
+      ]);
+      services = sList;
+      staff = stList;
+      resources = rList;
+      pricingRules = pRules;
+    } catch (e) {
+      console.warn('[ReservarPage] Warning: Error fetching DB data:', e);
+    }
+  }
+
+  if (services.length === 0) {
+    services = [
+      {
+        id: 'serv-general',
+        name: 'Reservación de Mesa / Servicio',
+        description: 'Reserva tu atención directa.',
+        durationMin: 60,
+        priceCents: 0,
+        currency: 'USD',
+      },
+    ];
+  }
+
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -55,7 +83,8 @@ export default async function ReservarPage({
           role: s.role,
           email: s.email,
           phone: s.phone,
-          serviceIds: s.services.map((ss) => ss.serviceId),
+          serviceIds: (s.services || []).map((ss: any) => ss.serviceId),
+
         }))}
         resources={resources.map((r) => ({
           id: r.id,

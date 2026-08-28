@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const tenantParam = searchParams.get('tenant') || undefined;
   const ctx = await getTenantContext(tenantParam);
-  if (!ctx.dbUrl) {
+  if (!ctx.tenant) {
     return NextResponse.json({ error: 'TENANT_NOT_FOUND' }, { status: 404 });
   }
 
@@ -20,8 +20,10 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await createBooking(ctx.dbUrl, parsed.data, {
-    businessName: ctx.tenant?.name,
+    businessName: ctx.tenant.name,
+    centralBranchId: ctx.centralBranchId || undefined,
   });
+
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 409 });
   }
@@ -30,4 +32,3 @@ export async function POST(req: NextRequest) {
     { status: 201 }
   );
 }
-
