@@ -55,15 +55,13 @@ function mapCentralToTenant(business: CentralBusiness, branch: CentralBranch): T
  */
 export async function getTenantContext(fallbackSlug?: string): Promise<TenantContext> {
   const headerList = await headers();
-  let slug = headerList.get('x-tenant-slug');
-
-  if (!slug && fallbackSlug) {
-    slug = fallbackSlug;
-  }
+  const headerSlug = headerList.get('x-tenant-slug')?.trim();
+  let slug = fallbackSlug && fallbackSlug.trim() ? fallbackSlug.trim() : headerSlug;
 
   if (!slug) {
     return { slug: null, tenant: null, dbUrl: null, centralBusinessId: null, centralBranchId: null };
   }
+  slug = slug.toLowerCase();
 
   const cached = TENANT_CACHE.get(slug);
   if (cached && cached.expiresAt > Date.now()) {

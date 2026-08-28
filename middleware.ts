@@ -19,7 +19,6 @@ export default function middleware(req: NextRequest) {
   const overrideSlug = enableOverride ? req.nextUrl.searchParams.get('tenant') : null;
   const effectiveSlug = overrideSlug || slug;
 
-  // Inject the tenant slug into request headers for RSC/layout consumption
   const requestHeaders = new Headers(req.headers);
   if (effectiveSlug) {
     requestHeaders.set('x-tenant-slug', effectiveSlug);
@@ -27,12 +26,14 @@ export default function middleware(req: NextRequest) {
     requestHeaders.set('x-tenant-slug', '');
   }
 
-  const intlResponse = intlMiddleware(req);
+  const reqWithHeaders = new NextRequest(req, {
+    headers: requestHeaders,
+  });
+
+  const intlResponse = intlMiddleware(reqWithHeaders);
   // Propagate the tenant header into the i18n response as well
   intlResponse.headers.set('x-tenant-slug', effectiveSlug ?? '');
 
-  // For tenants, always force the default locale on their booking flow
-  // (can be overridden per-customer via cookie `NEXT_LOCALE` later)
   return intlResponse;
 }
 

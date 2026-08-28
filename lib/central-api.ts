@@ -233,11 +233,24 @@ export async function resolveCentralTenantBySlug(
   if (res.ok && res.data && res.data.business) {
     const business = res.data.business;
     const branches = business.branches || [];
-    const primaryBranch = branches.length > 0 ? branches[0] : null;
+    const primaryBranch = branches.length > 0 ? branches[0] : {
+      id: `${business.id}-main-branch`,
+      businessId: business.id,
+      name: 'Sucursal Principal',
+      slug: 'principal',
+      address: null,
+      city: null,
+      provincia: null,
+      lat: null,
+      lng: null,
+      phone: business.whatsapp || null,
+      email: null,
+      isActive: true,
+      createdAt: business.createdAt,
+      updatedAt: business.updatedAt,
+    };
 
-    if (primaryBranch) {
-      return { business, branch: primaryBranch };
-    }
+    return { business, branch: primaryBranch };
   }
 
   return null;
