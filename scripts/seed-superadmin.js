@@ -1,58 +1,86 @@
 const bcrypt = require('bcryptjs');
-const { PrismaClient } = require('../node_modules/.prisma/control');
 
-function getControlUrl() {
-  return (
-    process.env.DATABASE_URL_CONTROL ||
-    process.env.DATABASE_URL ||
-    'postgresql://postgres:postgres@localhost:5432/misreservaciones_control?schema=public'
-  );
-}
-
-const prismaControl = new PrismaClient({
-  datasources: {
-    db: {
-      url: getControlUrl(),
-    },
-  },
-});
-
-async function main() {
-  const superadmins = [
-    { email: 'fhernandezcalle@gmail.com', name: 'Frank Hernández (Superadmin)' },
-    { email: 'pruebasyaprendizaje0@gmail.com', name: 'Super Administrator' },
-  ];
-  const rawPassword = 'Frhc1971';
-  const passwordHash = await bcrypt.hash(rawPassword, 10);
-
-  for (const sa of superadmins) {
-    console.log(`[seed-superadmin] Configuring Superadmin account: ${sa.email}`);
-    const user = await prismaControl.user.upsert({
-      where: { email: sa.email },
-      update: {
-        role: 'PLATFORM_ADMIN',
-        passwordHash,
-        name: sa.name,
-      },
-      create: {
-        email: sa.email,
-        name: sa.name,
-        passwordHash,
-        role: 'PLATFORM_ADMIN',
-      },
-    });
-    console.log('[seed-superadmin] Superadmin configured successfully:', {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+let PrismaClient;
+try {
+  PrismaClient = require('../node_modules/.prisma/control').PrismaClient;
+} catch {
+  try {
+    PrismaClient = require('.prisma/control').PrismaClient;
+  } catch {
+    PrismaClient = require('@prisma/control').PrismaClient;
   }
 }
 
-main()
-  .catch((e) => {
-    console.error('[seed-superadmin] Error:', e);
-  })
-  .finally(async () => {
-    await prismaControl.$disconnect();
+function getControlUrl() {
+  return process.env.DATABASE_URL_CONTROL || process.env.DATABASE_URL;
+}
+
+async function main() {
+  const emailEnv = process.env.SUPER_ADMIN_EMAIL;
+  const rawPassword = process.env.SUPER_ADMIN_PASSWORD;
+
+  if (!emailEnv || !rawPassword) {
+    console.warn(
+      '[seed-superadmin] ADVERTENCIA: Variables SUPER_ADMIN_EMAIL y/o SUPER_ADMIN_PASSWORD no definidas. Se omite la creación del superadministrador.'
+    );
+    return;
+  }
+
+  const dbUrl = getControlUrl();
+  if (!dbUrl) {
+    console.warn(
+      '[seed-superadmin] ADVERTENCIA: No se encontró la variable DATABASE_URL_CONTROL ni DATABASE_URL. Se omite el seeding.'
+    );
+    return;
+  }
+
+  const prismaControl = new PrismaClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
   });
+
+  try {
+    const emails = emailEnv
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+    for (const email of emails) {
+      console.log(`[seed-superadmin] Configurando superadministrador para: ${email}`);
+      const user = await prismaControl.user.upsert({
+        where: { email },
+        update: {
+          role: 'PLATFORM_ADMIN',
+          passwordHash,
+        },
+        create: {
+          email,
+          name: 'Super Administrator',
+          passwordHash,
+          role: 'PLATFORM_ADMIN',
+        },
+      });
+      console.log('[seed-superadmin] Superadministrador configurado exitosamente:', {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+    }
+  } catch (err) {
+    console.error(
+      '[seed-superadmin] Error durante la ejecución del seed:',
+      err.message || 'Error desconocido'
+    );
+  } finally {
+    await prismaControl.$disconnect();
+  }
+}
+
+main().catch((e) => {
+  console.error('[seed-superadmin] Error en la ejecución principal:', e.message || 'Error general');
+});
