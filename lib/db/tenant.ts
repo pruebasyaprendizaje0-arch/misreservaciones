@@ -24,8 +24,13 @@ function getControlHost(): string | null {
 }
 
 export function getTenantClient(dbUrl: string): TenantClient {
+  if (!dbUrl || typeof dbUrl !== 'string' || !dbUrl.trim()) {
+    throw new Error('[getTenantClient] dbUrl es requerido para consultar la base tenant local');
+  }
   let sanitized = dbUrl;
   const controlHost = getControlHost();
+
+
 
   if (controlHost && process.env.NODE_ENV === 'production') {
     try {

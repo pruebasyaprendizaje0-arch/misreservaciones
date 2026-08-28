@@ -23,12 +23,22 @@ export default async function TenantLayout({
   const bookingUrl = isSubdomain ? `/${locale}/reservar` : `/${locale}/${slug}/reservar`;
 
   const t = await getTranslations('common');
-  const db = getTenantClient(ctx.dbUrl!);
-  const settings = await db.setting.findMany({ where: { key: { in: ['locale', 'currency'] } } });
-  const settingMap = Object.fromEntries(
-    settings.map((s) => [s.key, s.value as string | null])
-  );
+  let settingMap: Record<string, string | null> = {};
+  if (ctx.dbUrl) {
+    try {
+      const db = getTenantClient(ctx.dbUrl);
+      if (db) {
+        const settings = await db.setting.findMany({ where: { key: { in: ['locale', 'currency'] } } });
+        settingMap = Object.fromEntries(
+          settings.map((s) => [s.key, s.value as string | null])
+        );
+      }
+    } catch (e) {
+      console.warn('[TenantLayout] Warning: Could not fetch db settings:', e);
+    }
+  }
   const businessName = ctx.tenant.name;
+
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">

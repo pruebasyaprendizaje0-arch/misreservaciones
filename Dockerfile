@@ -70,9 +70,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
 # Copiar y dar permisos al entrypoint (lo hacemos antes de cambiar a nextjs)
 COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
 
 # Declarar volumen persistente para archivos subidos (logos, portadas, multimedia)
 VOLUME ["/app/public/uploads"]
