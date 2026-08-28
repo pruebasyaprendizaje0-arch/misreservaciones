@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description: 'Plataforma multi-tenant de reservaciones para hostales, clínicas, peluquerías y centros de spa en Ecuador.',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.png', type: 'image/png' },
       { url: '/favicon.png', type: 'image/png' },
     ],
@@ -37,12 +38,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" href="/icon.png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-      </head>
-      <body className="min-h-screen bg-slate-50 antialiased">
+      <body className="min-h-screen bg-slate-50 antialiased" suppressHydrationWarning>
         {children}
       </body>
     </html>

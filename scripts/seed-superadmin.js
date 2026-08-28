@@ -1,14 +1,27 @@
-const bcrypt = require('bcryptjs');
-
-let PrismaClient;
+let bcrypt;
 try {
-  PrismaClient = require('../node_modules/.prisma/control').PrismaClient;
+  bcrypt = require('bcryptjs');
 } catch {
   try {
-    PrismaClient = require('.prisma/control').PrismaClient;
-  } catch {
-    PrismaClient = require('@prisma/control').PrismaClient;
+    bcrypt = require('.next/standalone/node_modules/bcryptjs');
+  } catch (e) {
+    console.warn('[seed-superadmin] ADVERTENCIA: No se pudo cargar el módulo bcryptjs.');
   }
+}
+
+let PrismaClient;
+const prismaPaths = [
+  '../node_modules/.prisma/control',
+  './node_modules/.prisma/control',
+  '.prisma/control',
+  '@prisma/control',
+  '.next/standalone/node_modules/.prisma/control'
+];
+for (const p of prismaPaths) {
+  try {
+    PrismaClient = require(p).PrismaClient;
+    if (PrismaClient) break;
+  } catch {}
 }
 
 function getControlUrl() {
@@ -31,6 +44,11 @@ async function main() {
     console.warn(
       '[seed-superadmin] ADVERTENCIA: No se encontró la variable DATABASE_URL_CONTROL ni DATABASE_URL. Se omite el seeding.'
     );
+    return;
+  }
+
+  if (!PrismaClient || !bcrypt) {
+    console.warn('[seed-superadmin] ADVERTENCIA: Módulos PrismaClient o bcryptjs no están disponibles. Se omite el seeding.');
     return;
   }
 

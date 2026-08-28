@@ -219,39 +219,28 @@ export async function getCentralBusinessById(businessId: string, token?: string)
 }
 
 /**
- * Resuelve un slug a su negocio central y sucursal principal
+ * Resuelve un slug a su negocio central y sucursal principal mediante el endpoint público
  */
 export async function resolveCentralTenantBySlug(
   slug: string,
   token?: string
 ): Promise<{ business: CentralBusiness; branch: CentralBranch } | null> {
-  const businesses = await getCentralBusinesses(token);
-  const business = businesses.find((b) => b.slug.toLowerCase() === slug.toLowerCase());
+  const cleanSlug = slug.trim().toLowerCase();
+  const res = await fetchCentralApi<{ business: CentralBusiness }>(`/v1/public/businesses/${encodeURIComponent(cleanSlug)}`, {
+    method: 'GET',
+  });
 
-  if (!business) {
-    return null;
-  }
+  if (res.ok && res.data && res.data.business) {
+    const business = res.data.business;
+    const branches = business.branches || [];
+    const primaryBranch = branches.length > 0 ? branches[0] : null;
 
-  // Obtener sucursales si no vinieron incluidas
-  let branches = business.branches;
-  if (!branches || branches.length === 0) {
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const branchRes = await fetchCentralApi<{ branches: CentralBranch[] }>(`/v1/businesses/${business.id}/branches`, {
-      method: 'GET',
-      headers,
-    });
-    if (branchRes.ok && branchRes.data && Array.isArray(branchRes.data.branches)) {
-      branches = branchRes.data.branches;
+    if (primaryBranch) {
+      return { business, branch: primaryBranch };
     }
   }
 
-  const primaryBranch = branches && branches.length > 0 ? branches[0] : null;
-  if (!primaryBranch) {
-    return null;
-  }
-
-  return { business, branch: primaryBranch };
+  return null;
 }
 
 /**

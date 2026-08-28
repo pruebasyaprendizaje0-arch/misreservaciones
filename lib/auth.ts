@@ -51,14 +51,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
-        // 2. Fallback a base local
-        const superadmins = ['fhernandezcalle@gmail.com', 'pruebasyaprendizaje0@gmail.com'];
-        if (superadmins.includes(emailLower) && password === 'Frhc1971') {
-          const passwordHash = await bcrypt.hash('Frhc1971', 10);
+        // 2. Fallback a base local con superadmin desde variables de entorno
+        const superadminPassword = process.env.SUPER_ADMIN_PASSWORD;
+        const superadminEmails = (process.env.SUPER_ADMIN_EMAIL || 'fhernandezcalle@gmail.com,pruebasyaprendizaje0@gmail.com')
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
+
+        if (superadminPassword && superadminEmails.includes(emailLower) && password === superadminPassword) {
+          const passwordHash = await bcrypt.hash(superadminPassword, 10);
           const saUser = await prismaControl.user.upsert({
             where: { email: emailLower },
-            update: { role: 'PLATFORM_ADMIN', passwordHash, name: 'Frank Hernández (Superadmin)' },
-            create: { email: emailLower, name: 'Frank Hernández (Superadmin)', passwordHash, role: 'PLATFORM_ADMIN' },
+            update: { role: 'PLATFORM_ADMIN', passwordHash, name: 'Super Administrator' },
+            create: { email: emailLower, name: 'Super Administrator', passwordHash, role: 'PLATFORM_ADMIN' },
           });
           return {
             id: saUser.id,

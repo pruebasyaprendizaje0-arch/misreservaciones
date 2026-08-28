@@ -62,15 +62,9 @@ RUN chown -R nextjs:nodejs .next public/uploads
 # Copiar la compilación standalone optimizada de Next.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copiar dependencias completas y esquemas para ejecución en contenedor
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# Copiar el CLI y Query Engines (.prisma) para ejecución en contenedor
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
-
-
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Copiar y dar permisos al entrypoint (lo hacemos antes de cambiar a nextjs)
