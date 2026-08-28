@@ -94,67 +94,100 @@ export type CentralLoginResponse = {
 const FETCH_TIMEOUT_MS = 3000;
 
 export function isCentralApiEnabled(): boolean {
-  return process.env.USE_CENTRAL_API === 'true';
+  const val = String(process.env.USE_CENTRAL_API || '').trim().toLowerCase();
+  return val === 'true' || val === '1' || val === 'yes';
+}
+
+export function getCentralApiBaseUrlCandidates(): string[] {
+  const isServer = typeof window === 'undefined';
+  const urls: string[] = [];
+
+  if (isServer && process.env.API_INTERNAL_URL && process.env.API_INTERNAL_URL.trim()) {
+    urls.push(process.env.API_INTERNAL_URL.trim().replace(/\/$/, ''));
+  }
+  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
+    urls.push(process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/$/, ''));
+  }
+  urls.push('https://api.ubicame.cc');
+
+  // Deduplicate preserving order
+  return Array.from(new Set(urls));
 }
 
 export function getCentralApiBaseUrl(): string {
-  const isServer = typeof window === 'undefined';
-  if (isServer && process.env.API_INTERNAL_URL) {
-    return process.env.API_INTERNAL_URL.replace(/\/$/, '');
-  }
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
-  }
-  return 'https://api.ubicame.cc';
+  const candidates = getCentralApiBaseUrlCandidates();
+  return candidates[0] || 'https://api.ubicame.cc';
 }
 
 /**
- * Realiza peticiones HTTP a la API Central con AbortController y timeout de 3 segundos
+ * Realiza peticiones HTTP a la API Central con failover de candidatos, AbortController y timeout de 3s
  */
 async function fetchCentralApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; data?: T; error?: string }> {
-  const baseUrl = getCentralApiBaseUrl();
-  const url = `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const candidates = getCentralApiBaseUrlCandidates();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let lastError = 'No se pudo conectar con la API Central';
+  let lastStatus = 500;
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(options.headers || {}),
-      },
-    });
+  for (const baseUrl of candidates) {
+    const url = `${baseUrl}${cleanEndpoint}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(options.headers || {}),
+        },
+      });
 
-    if (!response.ok) {
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        return { ok: true, status: response.status, data };
+      }
+
       let errorMessage = `HTTP Error ${response.status}`;
       try {
         const errorJson = await response.json();
         if (errorJson.message) errorMessage = errorJson.message;
         else if (errorJson.error) errorMessage = errorJson.error;
       } catch {}
-      return { ok: false, status: response.status, error: errorMessage };
-    }
 
-    const data = await response.json();
-    return { ok: true, status: response.status, data };
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    const isAbort = err.name === 'AbortError';
-    return {
-      ok: false,
-      status: isAbort ? 408 : 500,
-      error: isAbort ? 'Tiempo de espera agotado (Timeout 3s)' : err.message || 'Error de red en API Central',
-    };
+      // Log clean diagnostic info without secrets
+      console.warn(
+        `[central-api] fetch HTTP ${response.status} -> endpoint: "${cleanEndpoint}", url: "${url}", reason: "${errorMessage}"`
+      );
+
+      // If status is 404, the resource legitimately does not exist, no need to failover to next candidate URL
+      if (response.status === 404) {
+        return { ok: false, status: 404, error: errorMessage };
+      }
+
+      lastStatus = response.status;
+      lastError = errorMessage;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isAbort = err.name === 'AbortError';
+      const reason = isAbort ? 'Tiempo de espera agotado (Timeout 3s)' : err.message || 'Error de red en API Central';
+      lastStatus = isAbort ? 408 : 500;
+      lastError = reason;
+
+      console.warn(
+        `[central-api] fetch network error -> endpoint: "${cleanEndpoint}", url: "${url}", status: ${lastStatus}, reason: "${reason}"`
+      );
+    }
   }
+
+  return { ok: false, status: lastStatus, error: lastError };
 }
 
 /**
