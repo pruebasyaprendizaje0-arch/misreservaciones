@@ -665,9 +665,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `plantilla-importacion-${term.customers.toLowerCase()}.csv`);
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
 
