@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { getTenantContext } from '@/lib/tenant-context';
+import { isCentralApiEnabled } from '@/lib/central-api';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
 import { CustomerDirectory } from '@/components/dashboard/CustomerDirectory';
@@ -19,30 +21,44 @@ export default async function ClientesPage({
   const userId = (session.user as { id: string }).id;
   const isSuperAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
 
-  const tenant = await prismaControl.tenant.findUnique({
-    where: { slug },
-    include: { owner: { select: { email: true, name: true } } },
-  });
-  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  const ctx = await getTenantContext(slug);
+  let tenant = ctx.tenant;
 
-  const db = getTenantClient(tenant.dbUrl);
+  if (!tenant && !isCentralApiEnabled()) {
+    try {
+      tenant = (await prismaControl.tenant.findUnique({
+        where: { slug },
+        include: { owner: { select: { email: true, name: true } } },
+      })) as any;
+    } catch {
+      tenant = null;
+    }
+  }
 
-  const customers = await db.customer.findMany({
-    orderBy: { name: 'asc' },
-    include: {
-      reservations: {
-        select: {
-          id: true,
-          startsAt: true,
-          status: true,
-          service: { select: { name: true, priceCents: true } },
-          staff: { select: { name: true } },
-          payments: { select: { amountCents: true, status: true } },
+  if (!tenant) notFound();
+
+  let customers: any[] = [];
+  if (ctx.dbUrl) {
+    try {
+      const db = getTenantClient(ctx.dbUrl);
+      customers = await db.customer.findMany({
+        orderBy: { name: 'asc' },
+        include: {
+          reservations: {
+            select: {
+              id: true,
+              startsAt: true,
+              status: true,
+              service: { select: { name: true, priceCents: true } },
+              staff: { select: { name: true } },
+              payments: { select: { amountCents: true, status: true } },
+            },
+            orderBy: { startsAt: 'desc' },
+          },
         },
-        orderBy: { startsAt: 'desc' },
-      },
-    },
-  });
+      });
+    } catch {}
+  }
 
   const config = getIndustryConfig(tenant.industry);
   const term = {
@@ -57,7 +73,7 @@ export default async function ClientesPage({
           <SuperadminBanner
             tenantName={tenant.name}
             tenantSlug={slug}
-            ownerEmail={tenant.owner?.email}
+            ownerEmail={(tenant as any).owner?.email || session.user?.email}
             locale={locale}
           />
         )}
@@ -89,9 +105,9 @@ export default async function ClientesPage({
             medicalData: c.medicalData,
             metadata: c.metadata,
             createdAt: c.createdAt.toISOString(),
-            reservations: c.reservations.map((r) => ({
+            reservations: (c.reservations || []).map((r: any) => ({
               id: r.id,
-              startsAt: r.startsAt.toISOString(),
+              startsAt: r.startsAt ? new Date(r.startsAt).toISOString() : new Date().toISOString(),
               status: r.status,
               service: r.service,
               staff: r.staff,

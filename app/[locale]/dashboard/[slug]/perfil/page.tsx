@@ -1,12 +1,14 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { getTenantContext } from '@/lib/tenant-context';
+import { isCentralApiEnabled } from '@/lib/central-api';
 import { prismaControl } from '@/lib/db/control';
 import { ProfileForm } from '@/components/dashboard/ProfileForm';
 import { SuperadminBanner } from '@/components/dashboard/SuperadminBanner';
 import Link from 'next/link';
 import { getLocale } from 'next-intl/server';
 
-export default async function PerfilPage({
+export default async function TenantProfilePage({
   params,
 }: {
   params: Promise<{ slug: string; locale: string }>;
@@ -19,11 +21,21 @@ export default async function PerfilPage({
   const userId = (session.user as { id: string }).id;
   const isSuperAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
 
-  const tenant = await prismaControl.tenant.findUnique({
-    where: { slug },
-    include: { owner: { select: { email: true, name: true } } },
-  });
-  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  const ctx = await getTenantContext(slug);
+  let tenant = ctx.tenant;
+
+  if (!tenant && !isCentralApiEnabled()) {
+    try {
+      tenant = (await prismaControl.tenant.findUnique({
+        where: { slug },
+        include: { owner: { select: { email: true, name: true } } },
+      })) as any;
+    } catch {
+      tenant = null;
+    }
+  }
+
+  if (!tenant) notFound();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
@@ -32,7 +44,7 @@ export default async function PerfilPage({
           <SuperadminBanner
             tenantName={tenant.name}
             tenantSlug={slug}
-            ownerEmail={tenant.owner?.email}
+            ownerEmail={(tenant as any).owner?.email || session.user?.email}
             locale={locale}
           />
         )}

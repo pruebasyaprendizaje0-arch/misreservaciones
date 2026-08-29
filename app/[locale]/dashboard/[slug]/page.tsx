@@ -46,13 +46,18 @@ export default async function TenantDashboard({
     }
   }
 
-  if (!tenant) {
-    tenant = await prismaControl.tenant.findUnique({
-      where: { slug },
-      include: { owner: { select: { email: true, name: true } } },
-    });
-    if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  if (!tenant && !isCentralApiEnabled()) {
+    try {
+      tenant = await prismaControl.tenant.findUnique({
+        where: { slug },
+        include: { owner: { select: { email: true, name: true } } },
+      });
+    } catch {
+      tenant = null;
+    }
   }
+
+  if (!tenant) notFound();
 
   const config = getIndustryConfig(tenant.industry);
 

@@ -3,27 +3,86 @@ import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { isCentralApiEnabled, getCentralBusinesses } from '@/lib/central-api';
 
 export default async function DashboardIndex() {
   const session = await auth();
-  if (!session?.user) redirect('/sign-in');
+  const locale = await getLocale();
+  const t = await getTranslations('admin');
+
+  if (!session?.user) redirect(`/${locale}/sign-in`);
 
   const userId = (session.user as { id: string }).id;
   const role = (session.user as { role?: string }).role;
   const isSuperAdmin = role === 'PLATFORM_ADMIN';
+  const accessToken = (session as any)?.accessToken;
 
-  const tenants = await prismaControl.tenant.findMany({
-    where: isSuperAdmin ? {} : { ownerId: userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      owner: {
-        select: { email: true, name: true },
-      },
-    },
-  });
+  let tenants: any[] = [];
+  let isSessionExpired = false;
 
-  const t = await getTranslations('admin');
-  const locale = await getLocale();
+  if (isCentralApiEnabled()) {
+    if (!accessToken) {
+      isSessionExpired = true;
+    } else {
+      const centralResult = await getCentralBusinesses(accessToken);
+      if (centralResult === null) {
+        // Central API responded with 401 Unauthorized
+        isSessionExpired = true;
+      } else if (Array.isArray(centralResult)) {
+        tenants = centralResult.map((b) => ({
+          id: b.id,
+          slug: b.slug,
+          name: b.name,
+          industry: b.industry || 'RESTAURANTE',
+          status: 'ACTIVE',
+          plan: b.plan || 'FREE',
+          isTrial: false,
+          owner: {
+            email: session.user?.email || '',
+            name: session.user?.name || 'Propietario Central',
+          },
+          createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
+        }));
+      }
+    }
+  } else {
+    try {
+      tenants = await prismaControl.tenant.findMany({
+        where: isSuperAdmin ? {} : { ownerId: userId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          owner: {
+            select: { email: true, name: true },
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[dashboard] Fallback local tenant findMany failed:', err);
+      tenants = [];
+    }
+  }
+
+  if (isSessionExpired) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="rounded-3xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/60 p-8 shadow-xl">
+          <span className="text-4xl">⚠️</span>
+          <h2 className="text-xl font-bold text-rose-900 dark:text-rose-200 mt-4">Sesión Expirada</h2>
+          <p className="text-sm text-rose-700 dark:text-rose-300 mt-2 font-medium">
+            Tu token de sesión con la API Central ha expirado o no es válido. Por favor, vuelve a iniciar sesión para acceder a tus negocios.
+          </p>
+          <div className="mt-6">
+            <Link
+              href={`/${locale}/sign-in`}
+              className="inline-block rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 text-sm transition-all shadow-md"
+            >
+              🔑 Volver a Iniciar Sesión
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

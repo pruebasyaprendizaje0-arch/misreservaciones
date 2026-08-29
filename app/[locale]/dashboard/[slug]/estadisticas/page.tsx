@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { getTenantContext } from '@/lib/tenant-context';
+import { isCentralApiEnabled } from '@/lib/central-api';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
 import { startOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
@@ -20,27 +22,47 @@ export default async function StatsPage({
   const userId = (session.user as { id: string }).id;
   const isSuperAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
 
-  const tenant = await prismaControl.tenant.findUnique({
-    where: { slug },
-    include: { owner: { select: { email: true, name: true } } },
-  });
-  if (!tenant || (tenant.ownerId !== userId && !isSuperAdmin)) notFound();
+  const ctx = await getTenantContext(slug);
+  let tenant = ctx.tenant;
 
-  const db = getTenantClient(tenant.dbUrl);
+  if (!tenant && !isCentralApiEnabled()) {
+    try {
+      tenant = (await prismaControl.tenant.findUnique({
+        where: { slug },
+        include: { owner: { select: { email: true, name: true } } },
+      })) as any;
+    } catch {
+      tenant = null;
+    }
+  }
+
+  if (!tenant) notFound();
+
   const now = new Date();
   const todayStart = startOfDay(now);
   const thirtyDaysAgo = subDays(todayStart, 29);
 
-  const reservations = await db.reservation.findMany({
-    where: { startsAt: { gte: thirtyDaysAgo, lte: now } },
-    include: { service: { select: { name: true } } },
-    orderBy: { startsAt: 'asc' },
-  });
+  let reservations: any[] = [];
+  let customersCount = 0;
+
+  if (ctx.dbUrl) {
+    try {
+      const db = getTenantClient(ctx.dbUrl);
+      [reservations, customersCount] = await Promise.all([
+        db.reservation.findMany({
+          where: { startsAt: { gte: thirtyDaysAgo, lte: now } },
+          include: { service: { select: { name: true } } },
+          orderBy: { startsAt: 'asc' },
+        }),
+        db.customer.count(),
+      ]);
+    } catch {}
+  }
 
   const days = eachDayOfInterval({ start: thirtyDaysAgo, end: todayStart });
   const dailyCounts = days.map((day) => {
     const dayStr = format(day, 'dd MMM', { locale: es });
-    const count = reservations.filter((r) => {
+    const count = reservations.filter((r: any) => {
       const rDay = startOfDay(r.startsAt);
       return rDay.getTime() === day.getTime();
     }).length;
@@ -49,12 +71,12 @@ export default async function StatsPage({
 
   const statusBreakdown = ['CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map((status) => ({
     status,
-    count: reservations.filter((r) => r.status === status).length,
+    count: reservations.filter((r: any) => r.status === status).length,
   })).filter((s) => s.count > 0);
 
   const serviceMap = new Map<string, number>();
   for (const r of reservations) {
-    const key = r.service.name;
+    const key = r.service?.name || 'Servicio';
     serviceMap.set(key, (serviceMap.get(key) ?? 0) + 1);
   }
   const topServices = Array.from(serviceMap.entries())
@@ -63,13 +85,11 @@ export default async function StatsPage({
     .map(([name, count]) => ({ name, count }));
 
   const totalReservations = reservations.length;
-  const completedCount = reservations.filter((r) => r.status === 'COMPLETED').length;
-  const cancelledCount = reservations.filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW').length;
+  const completedCount = reservations.filter((r: any) => r.status === 'COMPLETED').length;
+  const cancelledCount = reservations.filter((r: any) => r.status === 'CANCELLED' || r.status === 'NO_SHOW').length;
   const conversionRate = totalReservations > 0
     ? Math.round((completedCount / totalReservations) * 100)
     : 0;
-
-  const [customersCount] = await Promise.all([db.customer.count()]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -78,7 +98,7 @@ export default async function StatsPage({
           <SuperadminBanner
             tenantName={tenant.name}
             tenantSlug={slug}
-            ownerEmail={tenant.owner?.email}
+            ownerEmail={(tenant as any).owner?.email || session.user?.email}
             locale={locale}
           />
         )}
