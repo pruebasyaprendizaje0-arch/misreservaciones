@@ -15,28 +15,36 @@ async function verifyAdmin() {
   return userRole === 'PLATFORM_ADMIN';
 }
 
+import { isCentralApiEnabled } from '@/lib/central-api';
+
 export async function GET(_req: NextRequest) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
-  // Fetch all platform users
-  const users = await prismaControl.user.findMany({
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      _count: {
-        select: { ownedTenants: true },
-      },
-    },
-  });
+  if (isCentralApiEnabled()) {
+    return NextResponse.json({ users: [] });
+  }
 
-  return NextResponse.json({ users });
+  try {
+    const users = await prismaControl.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        _count: {
+          select: { ownedTenants: true },
+        },
+      },
+    });
+    return NextResponse.json({ users });
+  } catch (err) {
+    return NextResponse.json({ users: [] });
+  }
 }
 
 export async function PATCH(req: NextRequest) {

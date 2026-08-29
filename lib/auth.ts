@@ -1,10 +1,7 @@
 import NextAuth from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
 import Credentials from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { prismaControl } from './db/control';
-import { isCentralApiEnabled, centralLogin } from './central-api';
+import { centralLogin } from './central-api';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -12,7 +9,6 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prismaControl),
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'miClaveSecretaSuperSegura2026',
   session: { strategy: 'jwt' },
 
@@ -33,62 +29,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const emailLower = parsed.data.email.toLowerCase().trim();
         const password = parsed.data.password;
 
-        // 1. Intentar login en API Central si está habilitada
-        if (isCentralApiEnabled()) {
-          try {
-            const centralRes = await centralLogin(emailLower, password);
-            if (centralRes && centralRes.token) {
-              return {
-                id: centralRes.user.id,
-                email: centralRes.user.email,
-                name: centralRes.user.name || 'Usuario Central',
-                role: centralRes.user.role || 'OWNER',
-                accessToken: centralRes.token,
-              };
-            }
-          } catch (e) {
-            console.warn('[auth] Fallo al autenticar con API Central, usando fallback local Prisma:', e);
+        // Autenticar exclusivamente mediante POST /v1/auth/login en API Central (ubicame-api)
+        try {
+          const centralRes = await centralLogin(emailLower, password);
+          if (centralRes && centralRes.token) {
+            return {
+              id: centralRes.user.id,
+              email: centralRes.user.email,
+              name: centralRes.user.name || 'Usuario Central',
+              role: centralRes.user.role || 'PLATFORM_ADMIN',
+              accessToken: centralRes.token,
+            };
           }
+        } catch (e: any) {
+          console.warn('[auth] Error de red o respuesta en autenticación con API Central:', e?.message || e);
         }
 
-        // 2. Fallback a base local con superadmin desde variables de entorno
-        const superadminPassword = process.env.SUPER_ADMIN_PASSWORD;
-        const superadminEmails = (process.env.SUPER_ADMIN_EMAIL || 'fhernandezcalle@gmail.com,pruebasyaprendizaje0@gmail.com')
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean);
-
-        if (superadminPassword && superadminEmails.includes(emailLower) && password === superadminPassword) {
-          const passwordHash = await bcrypt.hash(superadminPassword, 10);
-          const saUser = await prismaControl.user.upsert({
-            where: { email: emailLower },
-            update: { role: 'PLATFORM_ADMIN', passwordHash, name: 'Super Administrator' },
-            create: { email: emailLower, name: 'Super Administrator', passwordHash, role: 'PLATFORM_ADMIN' },
-          });
-          return {
-            id: saUser.id,
-            email: saUser.email,
-            name: saUser.name,
-            image: saUser.image,
-            role: saUser.role,
-          };
-        }
-
-        const user = await prismaControl.user.findUnique({
-          where: { email: emailLower },
-        });
-        if (!user || !user.passwordHash) return null;
-
-        const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
-        };
+        // Si la autenticación falla o no devuelve token, retornar null (HTTP 401 para credenciales inválidas)
+        return null;
       },
     }),
   ],
@@ -96,7 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt: async ({ token, user }) => {
       if (user) {
         token.id = (user as { id: string }).id;
-        token.role = (user as { role?: string }).role ?? 'OWNER';
+        token.role = (user as { role?: string }).role ?? 'PLATFORM_ADMIN';
         if ((user as any).accessToken) {
           token.accessToken = (user as any).accessToken;
         }

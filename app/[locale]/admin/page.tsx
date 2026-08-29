@@ -4,6 +4,7 @@ import { prismaControl } from '@/lib/db/control';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import Link from 'next/link';
 import { getLocale } from 'next-intl/server';
+import { isCentralApiEnabled, getCentralBusinesses } from '@/lib/central-api';
 
 export default async function AdminPage({
   params,
@@ -43,38 +44,55 @@ export default async function AdminPage({
   }
 
   // Fetch tenants, users, and audit logs
-  const [tenants, users, logs] = await Promise.all([
-    prismaControl.tenant.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        owner: {
-          select: { name: true, email: true },
-        },
-      },
-    }),
-    prismaControl.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        _count: {
-          select: { ownedTenants: true },
-        },
-      },
-    }),
-    prismaControl.auditLog.findMany({
-      take: 60,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        actor: {
-          select: { email: true },
-        },
-      },
-    }),
-  ]);
+  let tenants: any[] = [];
+  let users: any[] = [];
+  let logs: any[] = [];
+
+  const accessToken = (session as any)?.accessToken;
+  if (isCentralApiEnabled()) {
+    try {
+      const centralBusinesses = await getCentralBusinesses(accessToken);
+      tenants = centralBusinesses.map((b) => ({
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        industry: b.industry,
+        status: 'ACTIVE',
+        plan: b.plan || 'FREE',
+        isTrial: false,
+        trialEndsAt: null,
+        owner: { name: session.user?.name || 'Propietario Central', email: session.user?.email || '' },
+        provincia: null,
+        canton: null,
+        parroquia: null,
+        comuna: null,
+        createdAt: new Date(b.createdAt),
+        logoUrl: b.logoUrl,
+      }));
+    } catch (e) {
+      console.warn('[AdminPage] Advertencia al obtener negocios de API Central:', e);
+    }
+  } else {
+    try {
+      [tenants, users, logs] = await Promise.all([
+        prismaControl.tenant.findMany({
+          orderBy: { createdAt: 'desc' },
+          include: { owner: { select: { name: true, email: true } } },
+        }),
+        prismaControl.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, name: true, email: true, role: true, createdAt: true, _count: { select: { ownedTenants: true } } },
+        }),
+        prismaControl.auditLog.findMany({
+          take: 60,
+          orderBy: { createdAt: 'desc' },
+          include: { actor: { select: { email: true } } },
+        }),
+      ]);
+    } catch (e) {
+      console.warn('[AdminPage] Advertencia al consultar base de control local:', e);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6">

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prismaControl } from '@/lib/db/control';
 import { randomInt } from 'node:crypto';
+import { isCentralApiEnabled } from '@/lib/central-api';
 
 const schema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido'),
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
     }
 
     const { email } = parsed.data;
+
+    if (isCentralApiEnabled()) {
+      return NextResponse.json({
+        success: true,
+        message: 'Si el correo existe en nuestra plataforma, recibirás instrucciones para restablecer tu contraseña.',
+      });
+    }
+
     const user = await prismaControl.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
