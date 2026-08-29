@@ -60,6 +60,8 @@ const INDUSTRY_LABELS: Record<string, string> = {
   MEDICO: 'Consultorio Médico',
 };
 
+import { getCentralBusinesses } from '@/lib/central-api';
+
 export default async function DirectoryPage({
   params,
   searchParams,
@@ -77,33 +79,84 @@ export default async function DirectoryPage({
   const { locale } = await params;
   const { provincia, canton, parroquia, comuna, industry, q } = await searchParams;
 
-  const whereClause: any = {
-    status: 'ACTIVE',
-  };
-
-  if (provincia) whereClause.provincia = provincia;
-  if (canton) whereClause.canton = canton;
-  if (parroquia) whereClause.parroquia = parroquia;
-  if (comuna) whereClause.comuna = comuna;
-  if (industry) whereClause.industry = industry;
-
-  if (q && q.trim()) {
-    const searchTerm = q.trim();
-    whereClause.OR = [
-      { name: { contains: searchTerm, mode: 'insensitive' } },
-      { description: { contains: searchTerm, mode: 'insensitive' } },
-      { address: { contains: searchTerm, mode: 'insensitive' } },
-      { comuna: { contains: searchTerm, mode: 'insensitive' } },
-      { parroquia: { contains: searchTerm, mode: 'insensitive' } },
-      { canton: { contains: searchTerm, mode: 'insensitive' } },
-    ];
+  let rawBusinesses: any[] = [];
+  try {
+    rawBusinesses = await getCentralBusinesses();
+  } catch (err) {
+    console.warn('[DirectoryPage] Warning: Failed to fetch businesses from Central API:', err);
   }
 
-  const tenants = await prismaControl.tenant.findMany({
-    where: whereClause,
-    orderBy: [{ plan: 'desc' }, { name: 'asc' }],
-    take: 60,
-  });
+  // Fallback to local Prisma if Central API returned empty and local DB is available
+  if (rawBusinesses.length === 0) {
+    try {
+      const whereClause: any = { status: 'ACTIVE' };
+      if (provincia) whereClause.provincia = provincia;
+      if (canton) whereClause.canton = canton;
+      if (parroquia) whereClause.parroquia = parroquia;
+      if (comuna) whereClause.comuna = comuna;
+      if (industry) whereClause.industry = industry;
+      if (q && q.trim()) {
+        const searchTerm = q.trim();
+        whereClause.OR = [
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { description: { contains: searchTerm, mode: 'insensitive' } },
+          { address: { contains: searchTerm, mode: 'insensitive' } },
+          { comuna: { contains: searchTerm, mode: 'insensitive' } },
+          { parroquia: { contains: searchTerm, mode: 'insensitive' } },
+          { canton: { contains: searchTerm, mode: 'insensitive' } },
+        ];
+      }
+      const localTenants = await prismaControl.tenant.findMany({
+        where: whereClause,
+        orderBy: [{ plan: 'desc' }, { name: 'asc' }],
+        take: 60,
+      });
+      if (localTenants && localTenants.length > 0) {
+        rawBusinesses = localTenants;
+      }
+    } catch (e) {
+      console.warn('[DirectoryPage] Warning: Local Prisma fallback also failed or unavailable:', e);
+    }
+  }
+
+  // Map and filter businesses cleanly
+  const tenants = rawBusinesses
+    .map((b) => {
+      const primaryBranch = b.branches && b.branches.length > 0 ? b.branches[0] : null;
+      return {
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        industry: b.industry || 'RESTAURANTE',
+        description: b.description || null,
+        logoUrl: b.logoUrl || null,
+        coverUrl: b.coverUrl || null,
+        phone: primaryBranch?.phone || b.phone || b.whatsapp || null,
+        address: primaryBranch?.address || b.address || null,
+        provincia: primaryBranch?.provincia || b.provincia || null,
+        canton: primaryBranch?.city || b.canton || null,
+        parroquia: b.parroquia || null,
+        comuna: b.comuna || null,
+        lat: primaryBranch?.lat || b.lat || null,
+        lng: primaryBranch?.lng || b.lng || null,
+        plan: b.plan || 'FREE',
+      };
+    })
+    .filter((t) => {
+      if (industry && t.industry.toUpperCase() !== industry.toUpperCase()) return false;
+      if (provincia && t.provincia && !t.provincia.toLowerCase().includes(provincia.toLowerCase())) return false;
+      if (canton && t.canton && !t.canton.toLowerCase().includes(canton.toLowerCase())) return false;
+      if (q && q.trim()) {
+        const searchTerm = q.trim().toLowerCase();
+        const matchesName = t.name.toLowerCase().includes(searchTerm);
+        const matchesDesc = t.description ? t.description.toLowerCase().includes(searchTerm) : false;
+        const matchesAddress = t.address ? t.address.toLowerCase().includes(searchTerm) : false;
+        const matchesCanton = t.canton ? t.canton.toLowerCase().includes(searchTerm) : false;
+        const matchesProvincia = t.provincia ? t.provincia.toLowerCase().includes(searchTerm) : false;
+        if (!matchesName && !matchesDesc && !matchesAddress && !matchesCanton && !matchesProvincia) return false;
+      }
+      return true;
+    });
 
   const availableCantones = provincia ? getCantonesForProvincia(provincia) : [];
   const availableParroquias = provincia && canton ? getParroquiasForCanton(provincia, canton) : [];

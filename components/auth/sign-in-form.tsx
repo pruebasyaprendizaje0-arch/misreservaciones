@@ -19,18 +19,28 @@ export function SignInForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
-    setLoading(false);
-    if (res?.error) {
-      setError('Credenciales inválidas. Verifica tu correo y contraseña.');
-      return;
+
+    try {
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      setLoading(false);
+
+      if (res?.error) {
+        setError('Credenciales inválidas. Verifica tu correo y contraseña.');
+        return;
+      }
+
+      router.push(`/${locale}/dashboard`);
+      router.refresh();
+    } catch (err: any) {
+      setLoading(false);
+      console.error('[SignInForm] Login error:', err);
+      setError('Error al conectar con el servicio de autenticación. Inténtalo de nuevo.');
     }
-    router.push(`/${locale}/dashboard`);
-    router.refresh();
   }
 
   return (
