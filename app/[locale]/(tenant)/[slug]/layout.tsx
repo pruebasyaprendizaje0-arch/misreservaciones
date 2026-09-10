@@ -5,6 +5,7 @@ import { getTenantClient } from '@/lib/db/tenant';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { headers } from 'next/headers';
+import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton';
 
 export default async function TenantLayout({
   children,
@@ -91,6 +92,13 @@ export default async function TenantLayout({
           <p>© {new Date().getFullYear()} {businessName}. Todos los derechos reservados.</p>
         </div>
       </footer>
+
+      {/* Floating WhatsApp Action Button */}
+      <FloatingWhatsAppButton
+        phone={ctx.tenant.phone}
+        businessName={businessName}
+        locale={locale}
+      />
     </div>
   );
 }
