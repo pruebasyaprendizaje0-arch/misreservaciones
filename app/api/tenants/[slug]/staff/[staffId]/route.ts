@@ -12,14 +12,27 @@ const patchSchema = z.object({
   active: z.boolean().optional(),
 });
 
+import { ensureControlSchema } from '@/lib/db/control';
+
 async function resolveOwnerDb(slug: string) {
   const session = await auth();
   if (!session?.user) return { error: 'UNAUTHORIZED' as const };
+  await ensureControlSchema();
+
   const userId = (session.user as { id: string }).id;
+  const userRole = (session.user as { role?: string }).role;
+  const userEmail = session.user.email?.toLowerCase().trim() || '';
+
+  const superAdminEmails = [
+    'pruebasyaprendizaje0@gmail.com',
+    'fhernandezcalle@gmail.com',
+    process.env.SUPER_ADMIN_EMAIL?.toLowerCase().trim(),
+  ].filter(Boolean);
+
+  const isAdmin = userRole === 'PLATFORM_ADMIN' || superAdminEmails.includes(userEmail);
   const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
   if (!tenant) return { error: 'NOT_FOUND' as const };
   const isOwner = tenant.ownerId === userId;
-  const isAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
   if (!isOwner && !isAdmin) return { error: 'FORBIDDEN' as const };
   return { db: getTenantClient(tenant.dbUrl) };
 }

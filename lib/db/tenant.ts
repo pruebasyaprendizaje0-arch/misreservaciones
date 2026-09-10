@@ -23,27 +23,37 @@ function getControlHost(): string | null {
   }
 }
 
-export function getTenantClient(dbUrl: string): TenantClient {
-  if (!dbUrl || typeof dbUrl !== 'string' || !dbUrl.trim()) {
-    throw new Error('[getTenantClient] dbUrl es requerido para consultar la base tenant local');
-  }
-  let sanitized = dbUrl;
+function getMasterDbUrl(): string {
+  return (
+    process.env.DATABASE_URL_CONTROL ||
+    process.env.DATABASE_URL ||
+    'postgresql://postgres:postgres@localhost:5432/postgres?schema=public'
+  );
+}
+
+export function getTenantClient(dbUrl?: string | null): TenantClient {
+  const masterUrl = getMasterDbUrl();
+  let sanitized = dbUrl && typeof dbUrl === 'string' && dbUrl.trim().length > 0 ? dbUrl.trim() : masterUrl;
   const controlHost = getControlHost();
-
-
 
   if (controlHost && process.env.NODE_ENV === 'production') {
     try {
       const parsed = new URL(sanitized);
       if (
         parsed.hostname === 'localhost' ||
-        parsed.hostname === '127.0.0.1'
+        parsed.hostname === '127.0.0.1' ||
+        parsed.hostname === 'INTERNAL_HOST'
       ) {
-        parsed.hostname = controlHost;
+        // Use the master Postgres credentials and host from Coolify
+        const masterParsed = new URL(masterUrl);
+        parsed.hostname = masterParsed.hostname;
+        parsed.port = masterParsed.port || '5432';
+        parsed.username = masterParsed.username;
+        parsed.password = masterParsed.password;
         sanitized = parsed.toString();
       }
     } catch {
-      // Keep sanitized if parsing fails
+      sanitized = masterUrl;
     }
   }
 

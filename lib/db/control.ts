@@ -147,6 +147,144 @@ export async function ensureControlSchema(): Promise<void> {
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
+        -- Tenant Enums and Tables for Unified PostgreSQL Support
+        BEGIN
+          CREATE TYPE "Industry" AS ENUM (
+            'HOSTAL', 'GLAMPING', 'VACACIONAL',
+            'MEDICO', 'MASAJE', 'PELUQUERIA', 'TATUAJE', 'VETERINARIA',
+            'TOURS', 'DEPORTES_ACUATICOS', 'PARAPENTE',
+            'RESTAURANTE', 'CATA_TALLER', 'EVENTOS',
+            'ALQUILER_VEHICULOS', 'CANCHAS', 'COWORKING', 'CAR_WASH'
+          );
+        EXCEPTION WHEN duplicate_object THEN null;
+        END;
+
+        BEGIN
+          CREATE TYPE "ResourceType" AS ENUM ('HABITACION', 'MESA', 'ASIENTO', 'CONSULTORIO', 'SILLA');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END;
+
+        BEGIN
+          CREATE TYPE "ReservationStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END;
+
+        BEGIN
+          CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'REFUNDED', 'FAILED', 'CANCELLED');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END;
+
+        CREATE TABLE IF NOT EXISTS "Service" (
+          "id" TEXT PRIMARY KEY,
+          "industry" "Industry" NOT NULL,
+          "name" TEXT NOT NULL,
+          "description" TEXT,
+          "durationMin" INTEGER NOT NULL,
+          "priceCents" INTEGER NOT NULL DEFAULT 0,
+          "currency" TEXT NOT NULL DEFAULT 'USD',
+          "capacity" INTEGER NOT NULL DEFAULT 1,
+          "active" BOOLEAN NOT NULL DEFAULT true,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "Resource" (
+          "id" TEXT PRIMARY KEY,
+          "type" "ResourceType" NOT NULL,
+          "name" TEXT NOT NULL,
+          "capacity" INTEGER NOT NULL DEFAULT 1,
+          "active" BOOLEAN NOT NULL DEFAULT true,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "Staff" (
+          "id" TEXT PRIMARY KEY,
+          "name" TEXT NOT NULL,
+          "email" TEXT,
+          "phone" TEXT,
+          "role" TEXT,
+          "active" BOOLEAN NOT NULL DEFAULT true,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "StaffService" (
+          "staffId" TEXT NOT NULL REFERENCES "Staff"("id") ON DELETE CASCADE,
+          "serviceId" TEXT NOT NULL REFERENCES "Service"("id") ON DELETE CASCADE,
+          PRIMARY KEY ("staffId", "serviceId")
+        );
+
+        CREATE TABLE IF NOT EXISTS "Customer" (
+          "id" TEXT PRIMARY KEY,
+          "name" TEXT NOT NULL,
+          "email" TEXT,
+          "phone" TEXT,
+          "locale" TEXT NOT NULL DEFAULT 'es',
+          "notes" TEXT,
+          "medicalData" JSONB,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "Reservation" (
+          "id" TEXT PRIMARY KEY,
+          "customerId" TEXT NOT NULL REFERENCES "Customer"("id"),
+          "serviceId" TEXT NOT NULL REFERENCES "Service"("id"),
+          "resourceId" TEXT REFERENCES "Resource"("id") ON DELETE SET NULL,
+          "staffId" TEXT REFERENCES "Staff"("id") ON DELETE SET NULL,
+          "startsAt" TIMESTAMP(3) NOT NULL,
+          "endsAt" TIMESTAMP(3) NOT NULL,
+          "status" "ReservationStatus" NOT NULL DEFAULT 'PENDING',
+          "source" TEXT NOT NULL DEFAULT 'web',
+          "notes" TEXT,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "AvailabilityRule" (
+          "id" TEXT PRIMARY KEY,
+          "staffId" TEXT REFERENCES "Staff"("id") ON DELETE CASCADE,
+          "weekday" INTEGER NOT NULL,
+          "startMin" INTEGER NOT NULL,
+          "endMin" INTEGER NOT NULL,
+          "active" BOOLEAN NOT NULL DEFAULT true
+        );
+
+        CREATE TABLE IF NOT EXISTS "AvailabilityException" (
+          "id" TEXT PRIMARY KEY,
+          "staffId" TEXT REFERENCES "Staff"("id") ON DELETE CASCADE,
+          "date" DATE NOT NULL,
+          "blocked" BOOLEAN NOT NULL DEFAULT true,
+          "startMin" INTEGER,
+          "endMin" INTEGER,
+          "reason" TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS "Payment" (
+          "id" TEXT PRIMARY KEY,
+          "reservationId" TEXT NOT NULL REFERENCES "Reservation"("id") ON DELETE CASCADE,
+          "amountCents" INTEGER NOT NULL,
+          "currency" TEXT NOT NULL DEFAULT 'USD',
+          "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+          "provider" TEXT,
+          "externalId" TEXT,
+          "metadata" JSONB,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS "Setting" (
+          "key" TEXT PRIMARY KEY,
+          "value" JSONB NOT NULL,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
         -- Columns migration check
         BEGIN
           ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "isTrial" BOOLEAN DEFAULT true;

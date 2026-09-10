@@ -12,14 +12,27 @@ const createSchema = z.object({
 });
 
 
+import { ensureControlSchema } from '@/lib/db/control';
+
 async function resolveOwnerDb(slug: string) {
   const session = await auth();
   if (!session?.user) return { error: 'UNAUTHORIZED' as const };
+  await ensureControlSchema();
+
   const userId = (session.user as { id: string }).id;
+  const userRole = (session.user as { role?: string }).role;
+  const userEmail = session.user.email?.toLowerCase().trim() || '';
+  
+  const superAdminEmails = [
+    'pruebasyaprendizaje0@gmail.com',
+    'fhernandezcalle@gmail.com',
+    process.env.SUPER_ADMIN_EMAIL?.toLowerCase().trim(),
+  ].filter(Boolean);
+
+  const isAdmin = userRole === 'PLATFORM_ADMIN' || superAdminEmails.includes(userEmail);
   const tenant = await prismaControl.tenant.findUnique({ where: { slug } });
   if (!tenant) return { error: 'NOT_FOUND' as const };
   const isOwner = tenant.ownerId === userId;
-  const isAdmin = (session.user as { role?: string }).role === 'PLATFORM_ADMIN';
   if (!isOwner && !isAdmin) return { error: 'FORBIDDEN' as const };
   return { db: getTenantClient(tenant.dbUrl), tenant };
 }
@@ -83,13 +96,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     );
   }
 
+  const ind = (owner.tenant.industry || 'HOSTAL').toUpperCase();
   const typeMap: Record<string, 'HABITACION' | 'MESA' | 'ASIENTO' | 'CONSULTORIO' | 'SILLA'> = {
     HOSTAL: 'HABITACION',
+    GLAMPING: 'HABITACION',
+    VACACIONAL: 'HABITACION',
     MASAJE: 'MESA',
     PELUQUERIA: 'SILLA',
+    TATUAJE: 'SILLA',
     MEDICO: 'CONSULTORIO',
+    VETERINARIA: 'CONSULTORIO',
+    RESTAURANTE: 'MESA',
   };
-  const type = typeMap[owner.tenant.industry] ?? 'MESA';
+  const type = typeMap[ind] ?? 'HABITACION';
 
   const resource = await owner.db.resource.create({
     data: {
