@@ -63,10 +63,10 @@ export default async function RecursosPage({
         )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">🔑 {label}s</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">🔑 {pluralLabel}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {tenant.name} · Gestiona los espacios o recursos disponibles
-              {resources.length > 0 && ` · ${resources.length} ${label.toLowerCase()}${resources.length !== 1 ? 's' : ''}`}
+              {resources.length > 0 && ` · ${resources.length} ${pluralLabel.toLowerCase()}`}
             </p>
           </div>
           <Link
@@ -83,9 +83,10 @@ export default async function RecursosPage({
           initial={resources.map((r) => ({
             id: r.id,
             name: r.name,
-            description: null,
+            description: (r.metadata as any)?.description || (r as any).description || null,
             capacity: r.capacity,
             active: r.active,
+            metadata: r.metadata,
           }))}
         />
       </div>

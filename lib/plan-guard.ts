@@ -94,7 +94,7 @@ export async function checkStaffLimit(slug: string): Promise<PlanGuardResult> {
 export async function checkResourceLimit(slug: string): Promise<PlanGuardResult> {
   const tenant = await prismaControl.tenant.findUnique({
     where: { slug },
-    select: { id: true, plan: true, dbUrl: true },
+    select: { id: true, plan: true, dbUrl: true, isTrial: true },
   });
 
   if (!tenant) {
@@ -109,13 +109,16 @@ export async function checkResourceLimit(slug: string): Promise<PlanGuardResult>
   const prismaTenant = getTenantClient(tenant.dbUrl);
   const currentCount = await prismaTenant.resource.count();
 
-  if (currentCount >= planConfig.maxResources) {
+  // If in trial mode, allow up to 30 resources
+  const maxAllowed = tenant.isTrial ? Math.max(planConfig.maxResources, 30) : planConfig.maxResources;
+
+  if (currentCount >= maxAllowed) {
     return {
       allowed: false,
-      reason: `Has alcanzado el límite de ${planConfig.maxResources} recurso(s) o habitación(es) de tu ${planConfig.name}. Actualiza a un plan superior para registrar más.`,
+      reason: `Has alcanzado el límite de ${maxAllowed} recurso(s) o habitación(es) de tu ${planConfig.name}. Actualiza a un plan superior para registrar más.`,
       planConfig,
       currentCount,
-      maxAllowed: planConfig.maxResources,
+      maxAllowed,
     };
   }
 
@@ -123,7 +126,7 @@ export async function checkResourceLimit(slug: string): Promise<PlanGuardResult>
     allowed: true,
     planConfig,
     currentCount,
-    maxAllowed: planConfig.maxResources,
+    maxAllowed,
   };
 }
 

@@ -23,7 +23,13 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Resource> & { photos?: string[] }>({});
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const pluralLabel =
+    industryLabel.toLowerCase() === 'habitación' || industryLabel.toLowerCase() === 'habitacion'
+      ? 'Habitaciones'
+      : `${industryLabel}s`;
 
   const setField = <K extends keyof typeof EMPTY>(key: K, value: typeof EMPTY[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -31,69 +37,108 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
     const body = {
-      name: form.name,
-      description: form.description || null,
-      capacity: form.capacity,
-      metadata: { photos: form.photos },
+      name: form.name.trim(),
+      description: form.description ? form.description.trim() : null,
+      capacity: Number(form.capacity) || 1,
+      metadata: { photos: form.photos || [] },
     };
-    const res = await fetch(`/api/tenants/${slug}/resources`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    setLoading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setResources((r) => [...r, data.resource]);
-      setForm(EMPTY);
-      setShowForm(false);
+
+    try {
+      const res = await fetch(`/api/tenants/${slug}/resources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+
+      if (res.ok && data.resource) {
+        setResources((r) => [...r, data.resource]);
+        setForm(EMPTY);
+        setShowForm(false);
+      } else {
+        setErrorMessage(data?.message || data?.error || 'Error al crear la habitación. Intenta de nuevo.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMessage(err?.message || 'Error de conexión.');
     }
   }
 
   async function handleSaveEdit(id: string) {
     setLoading(true);
+    setErrorMessage(null);
+    const current = resources.find((r) => r.id === id);
+
     const body = {
-      name: editForm.name,
-      description: editForm.description || null,
-      capacity: editForm.capacity,
+      name: editForm.name !== undefined ? editForm.name.trim() : current?.name,
+      description: editForm.description !== undefined ? (editForm.description ? editForm.description.trim() : null) : (current?.description ?? null),
+      capacity: editForm.capacity !== undefined ? (Number(editForm.capacity) || 1) : (current?.capacity ?? 1),
       metadata: {
-        ...(resources.find((r) => r.id === id)?.metadata || {}),
-        photos: editForm.photos || [],
+        ...(current?.metadata || {}),
+        photos: editForm.photos !== undefined ? editForm.photos : (current?.metadata?.photos || []),
       },
     };
-    const res = await fetch(`/api/tenants/${slug}/resources/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    setLoading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setResources((r) => r.map((rc) => (rc.id === id ? data.resource : rc)));
-      setEditingId(null);
+
+    try {
+      const res = await fetch(`/api/tenants/${slug}/resources/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+
+      if (res.ok && data.resource) {
+        setResources((r) => r.map((rc) => (rc.id === id ? data.resource : rc)));
+        setEditingId(null);
+      } else {
+        setErrorMessage(data?.message || data?.error || 'Error al guardar los cambios de la habitación.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMessage(err?.message || 'Error de conexión.');
     }
   }
 
   async function toggleActive(id: string, active: boolean) {
-    const res = await fetch(`/api/tenants/${slug}/resources/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !active }),
-    });
-    if (res.ok) setResources((r) => r.map((rc) => (rc.id === id ? { ...rc, active: !active } : rc)));
+    try {
+      const res = await fetch(`/api/tenants/${slug}/resources/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !active }),
+      });
+      if (res.ok) setResources((r) => r.map((rc) => (rc.id === id ? { ...rc, active: !active } : rc)));
+    } catch {}
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/tenants/${slug}/resources/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setResources((r) => r.filter((rc) => rc.id !== id));
-      setDeleteConfirmId(null);
-    }
+    try {
+      const res = await fetch(`/api/tenants/${slug}/resources/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setResources((r) => r.filter((rc) => rc.id !== id));
+        setDeleteConfirmId(null);
+      }
+    } catch {}
   }
 
   return (
     <div className="space-y-4 text-slate-900 dark:text-slate-100">
+      {errorMessage && (
+        <div className="rounded-xl border border-rose-500/50 bg-rose-500/10 p-4 text-sm font-semibold text-rose-300 flex items-center justify-between">
+          <span>⚠️ {errorMessage}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-xs text-rose-400 hover:text-white underline ml-4"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <button
           type="button"
@@ -101,9 +146,10 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
           onClick={() => {
             setShowForm((v) => !v);
             setForm(EMPTY);
+            setErrorMessage(null);
           }}
         >
-          {showForm ? '✕ Cancelar' : `+ Nuevo ${industryLabel.toLowerCase()}`}
+          {showForm ? '✕ Cancelar' : `+ Nueva ${industryLabel.toLowerCase()}`}
         </button>
       </div>
 
