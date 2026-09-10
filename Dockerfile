@@ -45,8 +45,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Instalar curl para que el healthcheck de Coolify funcione correctamente
-RUN apk add --no-cache curl
+# Instalar curl y dos2unix para que el arranque y healthcheck funcionen sin problemas
+RUN apk add --no-cache curl dos2unix
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -67,9 +67,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
-# Copiar y dar permisos al entrypoint (lo hacemos antes de cambiar a nextjs)
+# Copiar y dar permisos al entrypoint con dos2unix
 COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN dos2unix /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 
 # Declarar volumen persistente para archivos subidos (logos, portadas, multimedia)
