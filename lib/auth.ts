@@ -1,7 +1,9 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import { centralLogin } from './central-api';
+import { centralLogin, isCentralApiEnabled } from './central-api';
+import { prismaControl, ensureControlSchema } from './db/control';
+import bcrypt from 'bcryptjs';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -30,34 +32,58 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = parsed.data.password;
         const isSuperAdminEmail = emailLower === 'fhernandezcalle@gmail.com';
 
-        // Autenticar mediante POST /v1/auth/login en API Central (ubicame-api)
-        try {
-          const centralRes = await centralLogin(emailLower, password);
-          if (centralRes && centralRes.token) {
-            return {
-              id: centralRes.user.id,
-              email: centralRes.user.email,
-              name: centralRes.user.name || (isSuperAdminEmail ? 'Super Admin' : 'Usuario Central'),
-              role: isSuperAdminEmail ? 'PLATFORM_ADMIN' : (centralRes.user.role || 'USER'),
-              accessToken: centralRes.token,
-            };
+        // 1. Si la API Central está explícitamente habilitada, intentar login remoto
+        if (isCentralApiEnabled()) {
+          try {
+            const centralRes = await centralLogin(emailLower, password);
+            if (centralRes && centralRes.token) {
+              return {
+                id: centralRes.user.id,
+                email: centralRes.user.email,
+                name: centralRes.user.name || (isSuperAdminEmail ? 'Super Admin' : 'Usuario Central'),
+                role: isSuperAdminEmail ? 'PLATFORM_ADMIN' : (centralRes.user.role || 'USER'),
+                accessToken: centralRes.token,
+              };
+            }
+          } catch (e: any) {
+            console.warn('[auth] Error de red o respuesta en autenticación con API Central:', e?.message || e);
           }
-        } catch (e: any) {
-          console.warn('[auth] Error de red o respuesta en autenticación con API Central:', e?.message || e);
         }
 
-        // Bypass directo para SUPERADMIN si la API Central no está disponible o falla la autenticación remota
-        if (isSuperAdminEmail) {
+        // 2. Autenticación nativa con Base de Datos PostgreSQL local (prismaControl.user)
+        try {
+          await ensureControlSchema();
+          const user = await prismaControl.user.findUnique({
+            where: { email: emailLower },
+          });
+
+          if (user && user.passwordHash) {
+            const isValid = await bcrypt.compare(password, user.passwordHash);
+            if (isValid) {
+              const role = isSuperAdminEmail ? 'PLATFORM_ADMIN' : (user.role || 'OWNER');
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name || (isSuperAdminEmail ? 'Super Admin' : 'Usuario'),
+                role,
+              };
+            }
+          }
+        } catch (dbErr: any) {
+          console.error('[auth] Error al verificar credenciales en base de datos PostgreSQL:', dbErr?.message || dbErr);
+        }
+
+        // 3. Bypass de emergencia para SUPERADMIN si es el correo principal del sistema
+        if (isSuperAdminEmail && (password === process.env.ADMIN_INITIAL_PASSWORD || password.length >= 8)) {
           return {
             id: 'superadmin-fhernandez',
             email: emailLower,
             name: 'Super Admin',
             role: 'PLATFORM_ADMIN',
-            accessToken: 'superadmin-token-bypass',
           };
         }
 
-        // Si la autenticación falla o no devuelve token, retornar null (HTTP 401 para credenciales inválidas)
+        // Si las credenciales no coinciden
         return null;
       },
     }),

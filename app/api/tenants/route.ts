@@ -39,6 +39,8 @@ import {
   isCentralApiEnabled,
   createCentralBusiness,
   getCentralBusinesses,
+  getCentralApiBaseUrlCandidates,
+  centralLogin,
 } from '@/lib/central-api';
 
 export async function POST(req: NextRequest) {
@@ -61,34 +63,73 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Si API Central está activa, crear negocio en API Central
-    if (isCentralApiEnabled() && accessToken) {
-      const centralRes = await createCentralBusiness(
-        {
-          name: parsed.data.name,
-          slug,
-          industry: parsed.data.industry,
-        },
-        accessToken
-      );
+    if (isCentralApiEnabled()) {
+      let activeToken = accessToken;
 
-      if (centralRes.ok && centralRes.business) {
-        return NextResponse.json(
+      // Si es un nuevo usuario registrándose públicamente sin token de sesión previo
+      if (!activeToken && parsed.data.ownerEmail && parsed.data.ownerPassword) {
+        try {
+          // Intentar registrar el usuario en la API Central
+          const candidates = getCentralApiBaseUrlCandidates();
+          const cleanEmail = parsed.data.ownerEmail.toLowerCase().trim();
+          
+          for (const baseUrl of candidates) {
+            try {
+              const regRes = await fetch(`${baseUrl}/v1/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: parsed.data.ownerName || parsed.data.name,
+                  email: cleanEmail,
+                  password: parsed.data.ownerPassword,
+                  role: 'OWNER',
+                }),
+              });
+
+              const regData = await regRes.json();
+              if (regRes.ok && regData.token) {
+                activeToken = regData.token;
+                break;
+              } else if (regRes.status === 400 && regData.message?.includes('registrado')) {
+                // Si el correo ya existe, intentar login en API Central
+                const loginRes = await centralLogin(cleanEmail, parsed.data.ownerPassword);
+                if (loginRes?.token) {
+                  activeToken = loginRes.token;
+                  break;
+                }
+              }
+            } catch (e) {}
+          }
+        } catch (e) {
+          console.warn('[POST /api/tenants] Error al autoregistrar usuario en API Central:', e);
+        }
+      }
+
+      if (activeToken) {
+        const centralRes = await createCentralBusiness(
           {
-            ok: true,
-            tenant: {
-              id: centralRes.business.id,
-              slug: centralRes.business.slug,
-              name: centralRes.business.name,
-              industry: centralRes.business.industry,
-            },
+            name: parsed.data.name,
+            slug,
+            industry: parsed.data.industry,
           },
-          { status: 201 }
+          activeToken
         );
-      } else {
-        return NextResponse.json(
-          { error: 'CENTRAL_CREATION_FAILED', message: centralRes.error || 'No se pudo crear el negocio central' },
-          { status: 400 }
-        );
+
+        if (centralRes.ok && centralRes.business) {
+          return NextResponse.json(
+            {
+              ok: true,
+              slug: centralRes.business.slug,
+              tenant: {
+                id: centralRes.business.id,
+                slug: centralRes.business.slug,
+                name: centralRes.business.name,
+                industry: centralRes.business.industry,
+              },
+            },
+            { status: 201 }
+          );
+        }
       }
     }
 

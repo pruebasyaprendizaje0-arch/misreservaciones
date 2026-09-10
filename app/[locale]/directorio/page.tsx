@@ -61,6 +61,7 @@ const INDUSTRY_LABELS: Record<string, string> = {
 };
 
 import { getCentralBusinesses } from '@/lib/central-api';
+import { buildBreadcrumbSchema, buildFaqSchema } from '@/lib/seo';
 
 export default async function DirectoryPage({
   params,
@@ -163,25 +164,68 @@ export default async function DirectoryPage({
   const availableComunas = provincia && canton && parroquia ? getComunasForParroquia(provincia, canton, parroquia) : [];
 
   // Schema.org CollectionPage / ItemList for GEO & SEO
-  const jsonLd = {
+  const itemListSchema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Directorio de Negocios y Hostales en Ecuador',
+    name: 'Directorio de Negocios, Hostales y Servicios en Ecuador',
+    description: 'Directorio oficial de alojamientos en la Ruta del Spondylus, Olón, Montañita, Santa Elena y servicios locales con reserva directa sin comisiones.',
     numberOfItems: tenants.length,
     itemListElement: tenants.map((t, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: t.name,
-      url: `https://misreservaciones.com/${locale}/${t.slug}`,
+      url: `https://${t.slug}.misreservaciones.com/${locale}`,
+      description: t.description || `Negocio ${t.name} en ${t.canton || 'Santa Elena'}, Ecuador`,
     })),
   };
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: locale === 'es' ? 'Inicio' : 'Home', url: `https://misreservaciones.com/${locale}` },
+    { name: locale === 'es' ? 'Directorio' : 'Directory', url: `https://misreservaciones.com/${locale}/directorio` },
+  ]);
+
+  const directoryFaqSchema = buildFaqSchema(
+    locale === 'es'
+      ? [
+          {
+            q: '¿Cómo puedo hacer una reserva directa de hostal o servicio en Ecuador?',
+            a: 'En misreservaciones.com puedes buscar por provincia, cantón o tipo de negocio (hostales, masajes, peluquerías, médicos) y completar tu reserva en línea de forma directa y sin pagar comisiones adicionales.',
+          },
+          {
+            q: '¿Qué negocios están disponibles en la Ruta del Spondylus (Olón, Montañita, Ayampe)?',
+            a: 'Encontrarás hostales con encanto frente al mar, spas de masaje, restaurantes, peluquerías y consultorios médicos con ubicación verificada y mapas en directo.',
+          },
+        ]
+      : [
+          {
+            q: 'How can I make a direct hostel or service booking in Ecuador?',
+            a: 'On misreservaciones.com you can search by province, city, or industry (hostels, spas, salons, doctors) and complete your direct online reservation with zero booking fees.',
+          },
+          {
+            q: 'Which businesses are listed along the Spondylus Route (Olon, Montanita, Ayampe)?',
+            a: 'You can find beachside hostels, massage spas, restaurants, hair salons, and medical clinics with verified locations and Google Maps links.',
+          },
+        ]
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
       />
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
+      {directoryFaqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(directoryFaqSchema) }}
+        />
+      )}
 
       {/* Header Banner */}
       <header className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white py-14 px-6 border-b border-indigo-900/50">

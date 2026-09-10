@@ -8,6 +8,12 @@ import { headers } from 'next/headers';
 import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
 import { LanguageToggle } from '@/components/dashboard/LanguageToggle';
 import { ShareBusinessButton } from '@/components/ShareBusinessButton';
+import {
+  buildBusinessSchema,
+  buildServicesSchema,
+  buildFaqSchema,
+  buildBreadcrumbSchema,
+} from '@/lib/seo';
 
 const INDUSTRY_ICONS: Record<string, string> = {
   HOSTAL: '🏨',
@@ -194,35 +200,9 @@ export default async function TenantHome({
       ? `https://www.google.com/maps?q=${tenant.lat},${tenant.lng}`
       : `https://www.google.com/maps?q=${encodeURIComponent(`${tenant.name}, ${fullAddress}`)}`;
 
-  // ─── GEO & AEO JSON-LD Schema ───
-  const schemaType = isHostal ? 'LodgingBusiness' : 'LocalBusiness';
-  const businessSchema = {
-    '@context': 'https://schema.org',
-    '@type': schemaType,
-    name: tenant.name,
-    description: tenant.description || `${tenant.name} en ${fullAddress}`,
-    url: `https://${slug}.misreservaciones.com/${locale}`,
-    telephone: tenant.phone || undefined,
-    image: [tenant.coverUrl, tenant.logoUrl].filter(Boolean),
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: tenant.address || undefined,
-      addressLocality: tenant.comuna || tenant.parroquia || undefined,
-      addressRegion: tenant.provincia || undefined,
-      addressCountry: 'EC',
-    },
-    ...(tenant.lat && tenant.lng
-      ? {
-          geo: {
-            '@type': 'GeoCoordinates',
-            latitude: tenant.lat,
-            longitude: tenant.lng,
-          },
-        }
-      : {}),
-    hasMap: mapUrl,
-    priceRange: '$$',
-  };
+  // ─── GEO & AEO JSON-LD Schemas ───
+  const businessSchema = buildBusinessSchema(tenant, locale);
+  const servicesSchema = buildServicesSchema(services, tenant, locale);
 
   const faqList = isEn
     ? [
@@ -280,30 +260,40 @@ export default async function TenantHome({
             ]),
       ];
 
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqList.map((faq) => ({
-      '@type': 'Question',
-      name: faq.q,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: faq.a,
-      },
-    })),
-  };
+  const faqSchema = buildFaqSchema(faqList);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: isEn ? 'Home' : 'Inicio', url: `https://misreservaciones.com/${locale}` },
+    { name: isEn ? 'Directory' : 'Directorio', url: `https://misreservaciones.com/${locale}/directorio` },
+    { name: tenant.name, url: `https://${slug}.misreservaciones.com/${locale}` },
+  ]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased transition-colors duration-300">
       {/* JSON-LD Structured Data scripts */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {businessSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema) }}
+        />
+      )}
+      {servicesSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesSchema) }}
+        />
+      )}
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
 
       {/* ─── Hero Banner ─── */}
       <section className="relative overflow-hidden bg-slate-950 text-white min-h-[450px] sm:min-h-[500px] flex flex-col justify-between pt-6 pb-14 sm:pt-8 sm:pb-16">
