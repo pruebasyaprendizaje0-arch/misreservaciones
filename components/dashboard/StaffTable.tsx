@@ -23,6 +23,7 @@ export function StaffTable({ slug, initial }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<StaffMember>>({});
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [scheduleStaffId, setScheduleStaffId] = useState<string | null>(null);
 
@@ -31,56 +32,117 @@ export function StaffTable({ slug, initial }: Props) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch(`/api/tenants/${slug}/staff`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    setLoading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setStaff((s) => [...s, data.member]);
-      setForm(EMPTY);
-      setShowForm(false);
+    setErrorMessage(null);
+    const body = {
+      name: form.name.trim(),
+      role: form.role ? form.role.trim() : null,
+      email: form.email ? form.email.trim() : null,
+      phone: form.phone ? form.phone.trim() : null,
+    };
+
+    try {
+      const res = await fetch(`/api/tenants/${slug}/staff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+
+      if (res.ok && (data.member || data.staff)) {
+        const created = data.member || data.staff;
+        setStaff((s) => [...s, created]);
+        setForm(EMPTY);
+        setShowForm(false);
+      } else {
+        setErrorMessage(data?.message || data?.error || 'Error al crear el empleado. Intenta de nuevo.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMessage(err?.message || 'Error de conexión.');
     }
   }
 
   async function handleSaveEdit(id: string) {
     setLoading(true);
-    const res = await fetch(`/api/tenants/${slug}/staff/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
-    });
-    setLoading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setStaff((s) => s.map((m) => (m.id === id ? data.member : m)));
-      setEditingId(null);
+    setErrorMessage(null);
+    const current = staff.find((m) => m.id === id);
+
+    const body = {
+      name: editForm.name !== undefined ? editForm.name.trim() : current?.name,
+      role: editForm.role !== undefined ? (editForm.role ? editForm.role.trim() : null) : (current?.role ?? null),
+      email: editForm.email !== undefined ? (editForm.email ? editForm.email.trim() : null) : (current?.email ?? null),
+      phone: editForm.phone !== undefined ? (editForm.phone ? editForm.phone.trim() : null) : (current?.phone ?? null),
+    };
+
+    try {
+      const res = await fetch(`/api/tenants/${slug}/staff/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+
+      if (res.ok && (data.member || data.staff)) {
+        const updated = data.member || data.staff;
+        setStaff((s) => s.map((m) => (m.id === id ? updated : m)));
+        setEditingId(null);
+      } else {
+        setErrorMessage(data?.message || data?.error || 'Error al guardar los cambios del empleado.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMessage(err?.message || 'Error de conexión.');
     }
   }
 
   async function toggleActive(id: string, active: boolean) {
-    const res = await fetch(`/api/tenants/${slug}/staff/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !active }),
-    });
-    if (res.ok) setStaff((s) => s.map((m) => (m.id === id ? { ...m, active: !active } : m)));
+    try {
+      const res = await fetch(`/api/tenants/${slug}/staff/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !active }),
+      });
+      if (res.ok) setStaff((s) => s.map((m) => (m.id === id ? { ...m, active: !active } : m)));
+    } catch {}
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/tenants/${slug}/staff/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setStaff((s) => s.filter((m) => m.id !== id));
-      setDeleteConfirmId(null);
-    }
+    try {
+      const res = await fetch(`/api/tenants/${slug}/staff/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStaff((s) => s.filter((m) => m.id !== id));
+        setDeleteConfirmId(null);
+      }
+    } catch {}
   }
 
   return (
     <div className="space-y-4">
+      {errorMessage && (
+        <div className="rounded-xl border border-rose-500/50 bg-rose-500/10 p-4 text-sm font-semibold text-rose-300 flex items-center justify-between">
+          <span>⚠️ {errorMessage}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-xs text-rose-400 hover:text-white underline ml-4"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-end">
-        <button type="button" className="btn-primary" onClick={() => { setShowForm((v) => !v); setForm(EMPTY); }}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setShowForm((v) => !v);
+            setForm(EMPTY);
+            setErrorMessage(null);
+          }}
+        >
           {showForm ? '✕ Cancelar' : '+ Nuevo empleado'}
         </button>
       </div>

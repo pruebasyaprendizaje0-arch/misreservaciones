@@ -16,7 +16,7 @@ export interface PlanGuardResult {
 export async function checkServiceLimit(slug: string): Promise<PlanGuardResult> {
   const tenant = await prismaControl.tenant.findUnique({
     where: { slug },
-    select: { id: true, plan: true, dbUrl: true },
+    select: { id: true, plan: true, dbUrl: true, isTrial: true },
   });
 
   if (!tenant) {
@@ -31,13 +31,15 @@ export async function checkServiceLimit(slug: string): Promise<PlanGuardResult> 
   const prismaTenant = getTenantClient(tenant.dbUrl);
   const currentCount = await prismaTenant.service.count();
 
-  if (currentCount >= planConfig.maxServices) {
+  const maxAllowed = tenant.isTrial ? Math.max(planConfig.maxServices, 30) : planConfig.maxServices;
+
+  if (currentCount >= maxAllowed) {
     return {
       allowed: false,
-      reason: `Has alcanzado el límite de ${planConfig.maxServices} servicio(s) de tu ${planConfig.name}. Actualiza a un plan superior para agregar más.`,
+      reason: `Has alcanzado el límite de ${maxAllowed} servicio(s) de tu ${planConfig.name}. Actualiza a un plan superior para agregar más.`,
       planConfig,
       currentCount,
-      maxAllowed: planConfig.maxServices,
+      maxAllowed,
     };
   }
 
@@ -45,7 +47,7 @@ export async function checkServiceLimit(slug: string): Promise<PlanGuardResult> 
     allowed: true,
     planConfig,
     currentCount,
-    maxAllowed: planConfig.maxServices,
+    maxAllowed,
   };
 }
 
@@ -55,7 +57,7 @@ export async function checkServiceLimit(slug: string): Promise<PlanGuardResult> 
 export async function checkStaffLimit(slug: string): Promise<PlanGuardResult> {
   const tenant = await prismaControl.tenant.findUnique({
     where: { slug },
-    select: { id: true, plan: true, dbUrl: true },
+    select: { id: true, plan: true, dbUrl: true, isTrial: true },
   });
 
   if (!tenant) {
@@ -70,13 +72,15 @@ export async function checkStaffLimit(slug: string): Promise<PlanGuardResult> {
   const prismaTenant = getTenantClient(tenant.dbUrl);
   const currentCount = await prismaTenant.staff.count();
 
-  if (currentCount >= planConfig.maxStaff) {
+  const maxAllowed = tenant.isTrial ? Math.max(planConfig.maxStaff, 20) : planConfig.maxStaff;
+
+  if (currentCount >= maxAllowed) {
     return {
       allowed: false,
-      reason: `Has alcanzado el límite de ${planConfig.maxStaff} miembro(s) de personal de tu ${planConfig.name}. Actualiza tu plan para agregar más especialistas.`,
+      reason: `Has alcanzado el límite de ${maxAllowed} miembro(s) de personal de tu ${planConfig.name}. Actualiza tu plan para agregar más especialistas.`,
       planConfig,
       currentCount,
-      maxAllowed: planConfig.maxStaff,
+      maxAllowed,
     };
   }
 
@@ -84,7 +88,7 @@ export async function checkStaffLimit(slug: string): Promise<PlanGuardResult> {
     allowed: true,
     planConfig,
     currentCount,
-    maxAllowed: planConfig.maxStaff,
+    maxAllowed,
   };
 }
 
