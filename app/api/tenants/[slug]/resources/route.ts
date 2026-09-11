@@ -3,6 +3,13 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prismaControl } from '@/lib/db/control';
 import { getTenantClient } from '@/lib/db/tenant';
+import { ensureControlSchema } from '@/lib/db/control';
+import {
+  isCentralApiEnabled,
+  resolveCentralTenantBySlug,
+  getCentralResources,
+  createCentralResource,
+} from '@/lib/central-api';
 
 const createSchema = z.object({
   name: z.string().min(2).max(120),
@@ -10,9 +17,6 @@ const createSchema = z.object({
   capacity: z.number().int().min(1).default(1),
   metadata: z.any().optional().nullable(),
 });
-
-
-import { ensureControlSchema } from '@/lib/db/control';
 
 async function resolveOwnerDb(slug: string) {
   const session = await auth();
@@ -42,13 +46,6 @@ function errorResponse(err: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND') {
   return NextResponse.json({ error: err }, { status });
 }
 
-import {
-  isCentralApiEnabled,
-  resolveCentralTenantBySlug,
-  getCentralResources,
-  createCentralResource,
-} from '@/lib/central-api';
-
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
 
@@ -63,7 +60,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
   const owner = await resolveOwnerDb(slug);
   if ('error' in owner) return errorResponse(owner.error as 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND');
   const resources = await owner.db.resource.findMany({ orderBy: { name: 'asc' } });
-  return NextResponse.json({ resources });
+  const formattedResources = resources.map((r) => ({
+    ...r,
+    description: (r.metadata as any)?.description || null,
+  }));
+  return NextResponse.json({ resources: formattedResources });
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
@@ -107,6 +108,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     MEDICO: 'CONSULTORIO',
     VETERINARIA: 'CONSULTORIO',
     RESTAURANTE: 'MESA',
+    CATA_TALLER: 'MESA',
+    EVENTOS: 'MESA',
+    COWORKING: 'MESA',
+    CANCHAS: 'MESA',
+    TOURS: 'ASIENTO',
+    DEPORTES_ACUATICOS: 'ASIENTO',
+    PARAPENTE: 'ASIENTO',
+    ALQUILER_VEHICULOS: 'ASIENTO',
+    CAR_WASH: 'ASIENTO',
   };
   const type = typeMap[ind] ?? 'HABITACION';
 
@@ -122,5 +132,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     },
   });
 
-  return NextResponse.json({ resource }, { status: 201 });
+  const formattedResource = {
+    ...resource,
+    description: (resource.metadata as any)?.description || null,
+  };
+
+  return NextResponse.json({ resource: formattedResource }, { status: 201 });
 }

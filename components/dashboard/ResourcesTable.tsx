@@ -55,11 +55,15 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
       setLoading(false);
 
       if (res.ok && data.resource) {
-        setResources((r) => [...r, data.resource]);
+        const item: Resource = {
+          ...data.resource,
+          description: data.resource.description || data.resource.metadata?.description || null,
+        };
+        setResources((r) => [...r, item]);
         setForm(EMPTY);
         setShowForm(false);
       } else {
-        setErrorMessage(data?.message || data?.error || 'Error al crear la habitación. Intenta de nuevo.');
+        setErrorMessage(data?.message || data?.error || `Error al crear ${industryLabel.toLowerCase()}. Intenta de nuevo.`);
       }
     } catch (err: any) {
       setLoading(false);
@@ -92,10 +96,14 @@ export function ResourcesTable({ slug, initial, industryLabel = 'Recurso' }: Pro
       setLoading(false);
 
       if (res.ok && data.resource) {
-        setResources((r) => r.map((rc) => (rc.id === id ? data.resource : rc)));
+        const item: Resource = {
+          ...data.resource,
+          description: data.resource.description || data.resource.metadata?.description || null,
+        };
+        setResources((r) => r.map((rc) => (rc.id === id ? item : rc)));
         setEditingId(null);
       } else {
-        setErrorMessage(data?.message || data?.error || 'Error al guardar los cambios de la habitación.');
+        setErrorMessage(data?.message || data?.error || `Error al guardar los cambios de ${industryLabel.toLowerCase()}.`);
       }
     } catch (err: any) {
       setLoading(false);
