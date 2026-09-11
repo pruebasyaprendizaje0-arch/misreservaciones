@@ -24,7 +24,7 @@ export default async function TenantProfilePage({
   const ctx = await getTenantContext(slug);
   let tenant = ctx.tenant;
 
-  if (!tenant && !isCentralApiEnabled()) {
+  if (!tenant) {
     try {
       tenant = (await prismaControl.tenant.findUnique({
         where: { slug },

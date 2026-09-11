@@ -25,7 +25,7 @@ export default async function RecursosPage({
   const ctx = await getTenantContext(slug);
   let tenant = ctx.tenant;
 
-  if (!tenant && !isCentralApiEnabled()) {
+  if (!tenant) {
     try {
       tenant = (await prismaControl.tenant.findUnique({
         where: { slug },

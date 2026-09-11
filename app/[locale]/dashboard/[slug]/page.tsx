@@ -46,7 +46,7 @@ export default async function TenantDashboard({
     }
   }
 
-  if (!tenant && !isCentralApiEnabled()) {
+  if (!tenant) {
     try {
       tenant = await prismaControl.tenant.findUnique({
         where: { slug },

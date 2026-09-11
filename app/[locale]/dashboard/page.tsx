@@ -18,17 +18,11 @@ export default async function DashboardIndex() {
   const accessToken = (session as any)?.accessToken;
 
   let tenants: any[] = [];
-  let isSessionExpired = false;
 
-  if (isCentralApiEnabled()) {
-    if (!accessToken) {
-      isSessionExpired = true;
-    } else {
+  if (isCentralApiEnabled() && accessToken) {
+    try {
       const centralResult = await getCentralBusinesses(accessToken);
-      if (centralResult === null) {
-        // Central API responded with 401 Unauthorized
-        isSessionExpired = true;
-      } else if (Array.isArray(centralResult)) {
+      if (Array.isArray(centralResult)) {
         tenants = centralResult.map((b) => ({
           id: b.id,
           slug: b.slug,
@@ -44,11 +38,23 @@ export default async function DashboardIndex() {
           createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
         }));
       }
+    } catch (e) {
+      console.warn('[dashboard] Central API fetch error, falling back to local DB:', e);
     }
-  } else {
+  }
+
+  // Si no hay tenants de API central o está en modo independiente, consultar base de datos PostgreSQL local
+  if (tenants.length === 0) {
     try {
       tenants = await prismaControl.tenant.findMany({
-        where: isSuperAdmin ? {} : { ownerId: userId },
+        where: isSuperAdmin
+          ? {}
+          : {
+              OR: [
+                { ownerId: userId },
+                { owner: { email: session.user?.email || '' } },
+              ],
+            },
         orderBy: { createdAt: 'desc' },
         include: {
           owner: {
@@ -57,31 +63,9 @@ export default async function DashboardIndex() {
         },
       });
     } catch (err) {
-      console.warn('[dashboard] Fallback local tenant findMany failed:', err);
+      console.warn('[dashboard] Local tenant findMany failed:', err);
       tenants = [];
     }
-  }
-
-  if (isSessionExpired) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <div className="rounded-3xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/60 p-8 shadow-xl">
-          <span className="text-4xl">⚠️</span>
-          <h2 className="text-xl font-bold text-rose-900 dark:text-rose-200 mt-4">Sesión Expirada</h2>
-          <p className="text-sm text-rose-700 dark:text-rose-300 mt-2 font-medium">
-            Tu token de sesión con la API Central ha expirado o no es válido. Por favor, vuelve a iniciar sesión para acceder a tus negocios.
-          </p>
-          <div className="mt-6">
-            <Link
-              href={`/${locale}/sign-in`}
-              className="inline-block rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 text-sm transition-all shadow-md"
-            >
-              🔑 Volver a Iniciar Sesión
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
