@@ -432,19 +432,7 @@ export default async function TenantHome({
                 className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white px-5 py-3 text-xs font-extrabold shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
               >
                 <span className="text-base">🧭</span>
-                <span>{isEn ? 'Virtual Guide' : 'Guía Virtual ubicame.info'}</span>
-              </a>
-            )}
-
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 text-xs font-extrabold shadow-lg shadow-emerald-600/20 transition-all hover:-translate-y-0.5 active:scale-95"
-              >
-                <span className="text-base">💬</span>
-                <span>WhatsApp {tenant.phone ? `(${tenant.phone})` : ''}</span>
+                <span>{isEn ? 'Virtual Guide' : 'Guía Virtual'}</span>
               </a>
             )}
 
@@ -527,7 +515,7 @@ export default async function TenantHome({
                         ubicame.info
                       </span>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                        {isEn ? 'Virtual Guide & 360° Tour' : 'Guía Virtual & Tour 360°'}
+                        {isEn ? 'Virtual Guide' : 'Guía Virtual'}
                       </h3>
                     </div>
                   </div>
@@ -537,8 +525,8 @@ export default async function TenantHome({
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                   {isEn
-                    ? 'Discover our official virtual guide on ubicame.info with 360° tours, attractions, and local travel recommendations.'
-                    : 'Conoce nuestra ficha interactiva en ubicame.info con recorridos 360°, atractivos y recomendaciones turísticas de la zona.'}
+                    ? 'Discover our official virtual guide on ubicame.info with attractions and local travel recommendations.'
+                    : 'Conoce nuestra ficha interactiva en ubicame.info con atractivos y recomendaciones turísticas de la zona.'}
                 </p>
                 <div className="inline-flex items-center gap-2 text-xs font-black text-sky-600 dark:text-sky-400 pt-1">
                   <span>{isEn ? 'Explore ubicame.info Guide' : 'Ver en ubicame.info'}</span>

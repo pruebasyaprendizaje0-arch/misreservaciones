@@ -299,7 +299,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-slate-300 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <span>🧭</span> Guía Virtual 360° (ubicame.info)
+                <span>🧭</span> Guía Virtual (ubicame.info)
               </span>
               <span className="text-[11px] text-indigo-400 font-normal">Opcional</span>
             </label>
@@ -311,7 +311,7 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               placeholder="https://ubicame.info/tu-negocio..."
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Enlace de tu guía interactiva o ficha turística 360° en ubicame.info.
+              Enlace de tu guía interactiva o ficha turística en ubicame.info.
             </p>
           </div>
         </div>
