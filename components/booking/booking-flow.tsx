@@ -41,7 +41,7 @@ type Props = {
   pricingRules?: PricingRules;
 };
 
-type Slot = { startsAt: string; endsAt: string; available: boolean; staffId?: string; resourceId?: string };
+type Slot = { startsAt: string; endsAt: string; timeStr?: string; available: boolean; staffId?: string; resourceId?: string };
 
 export function BookingFlow({
   industry,
@@ -594,7 +594,7 @@ export function BookingFlow({
                 </div>
                 {chosenSlot && (
                   <div className="font-bold text-white">
-                    🗓️ {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy (HH:mm)')} — {format(new Date(chosenSlot.endsAt), 'HH:mm')}
+                    🗓️ {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy')} ({chosenSlot.timeStr || (chosenSlot.startsAt.includes('T') ? chosenSlot.startsAt.split('T')[1].substring(0, 5) : format(new Date(chosenSlot.startsAt), 'HH:mm'))}) — {chosenSlot.endsAt.includes('T') ? chosenSlot.endsAt.split('T')[1].substring(0, 5) : format(new Date(chosenSlot.endsAt), 'HH:mm')}
                   </div>
                 )}
                 {staffId && (
@@ -1103,7 +1103,7 @@ export function BookingFlow({
                           : 'border-slate-200 hover:border-indigo-300 bg-white'
                       }`}
                     >
-                      {format(start, 'HH:mm')}
+                      {slot.timeStr || (slot.startsAt.includes('T') ? slot.startsAt.split('T')[1].substring(0, 5) : format(start, 'HH:mm'))}
                     </button>
                   );
                 })}
@@ -1147,7 +1147,7 @@ export function BookingFlow({
                 </span>
               )}
               <span>
-                📅 {isHostal ? 'Check-in:' : 'Fecha y Hora:'} {format(new Date(chosenSlot.startsAt), isHostal ? 'dd/MM/yyyy (12:00)' : 'dd/MM/yyyy - HH:mm')}
+                📅 {isHostal ? 'Check-in:' : 'Fecha y Hora:'} {format(new Date(chosenSlot.startsAt), 'dd/MM/yyyy')} {isHostal ? '(12:00)' : `- ${chosenSlot.timeStr || (chosenSlot.startsAt.includes('T') ? chosenSlot.startsAt.split('T')[1].substring(0, 5) : format(new Date(chosenSlot.startsAt), 'HH:mm'))}`}
               </span>
               <span>
                 🏁 Check-out: {format(new Date(chosenSlot.endsAt), 'dd/MM/yyyy (12:00)')}

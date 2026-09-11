@@ -67,6 +67,28 @@ export function BusinessHoursEditor({ slug, staffId = null, staffName, onSaved }
           if (staffId && rules.length === 0) {
             // Staff has no custom rules yet -> set useCustomSchedule to false
             setUseCustomSchedule(false);
+            // Fetch business rules as template for when they enable custom schedule
+            const bRes = await fetch(`/api/tenants/${slug}/availability/rules`);
+            if (bRes.ok) {
+              const bData = await bRes.json();
+              const bRules: any[] = bData.rules || [];
+              if (bRules.length > 0) {
+                setDays((prev) =>
+                  prev.map((d) => {
+                    const match = bRules.find((r) => r.weekday === d.weekday);
+                    if (match) {
+                      return {
+                        weekday: d.weekday,
+                        active: match.active,
+                        startTime: minToTime(match.startMin),
+                        endTime: minToTime(match.endMin),
+                      };
+                    }
+                    return d;
+                  })
+                );
+              }
+            }
           } else {
             if (staffId && rules.length > 0) {
               setUseCustomSchedule(true);

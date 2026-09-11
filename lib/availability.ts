@@ -14,8 +14,9 @@ export type SlotInput = {
 };
 
 export type Slot = {
-  startsAt: Date;
-  endsAt: Date;
+  startsAt: Date | string;
+  endsAt: Date | string;
+  timeStr?: string;
   staffId?: string;
   resourceId?: string;
   available: boolean;
@@ -57,8 +58,18 @@ export async function computeSlots(input: SlotInput): Promise<Slot[]> {
     });
   }
 
+  // Fallback to standard working hours if no rules configured yet in DB (Mon-Sat 08:00 - 20:00)
+  if (rules.length === 0) {
+    rules = [1, 2, 3, 4, 5, 6].map((w) => ({
+      weekday: w,
+      startMin: 480,
+      endMin: 1200,
+      active: true,
+    }));
+  }
+
   const weekday = input.date.getDay();
-  const windows = rules.filter((r) => r.weekday === weekday);
+  const windows = rules.filter((r) => r.weekday === weekday && r.active);
   if (windows.length === 0) return [];
 
   const exceptions = await db.availabilityException.findMany({
@@ -83,52 +94,62 @@ export async function computeSlots(input: SlotInput): Promise<Slot[]> {
   });
 
   const bufferMin = service.industry === 'MEDICO' ? 5 : 0;
-  const stepMin = service.durationMin;
+  const stepMin = service.durationMin || 60;
   const slots: Slot[] = [];
 
+  const y = input.date.getFullYear();
+  const m = (input.date.getMonth() + 1).toString().padStart(2, '0');
+  const d = input.date.getDate().toString().padStart(2, '0');
+  const datePrefix = `${y}-${m}-${d}`;
+
   for (const window of windows) {
-    let cursor = new Date(dayStart);
-    cursor.setHours(0, 0, 0, 0);
-    cursor = addMinutes(cursor, window.startMin);
+    let currentMin = window.startMin;
+    const windowEndMin = window.endMin;
 
-    const windowEnd = new Date(dayStart);
-    windowEnd.setHours(0, 0, 0, 0);
-    windowEnd.setMinutes(windowEnd.getMinutes() + window.endMin);
+    while (currentMin + stepMin <= windowEndMin) {
+      const startH = Math.floor(currentMin / 60).toString().padStart(2, '0');
+      const startM = (currentMin % 60).toString().padStart(2, '0');
+      const endH = Math.floor((currentMin + stepMin + bufferMin) / 60).toString().padStart(2, '0');
+      const endM = ((currentMin + stepMin + bufferMin) % 60).toString().padStart(2, '0');
 
-    while (addMinutes(cursor, stepMin) <= windowEnd) {
-      const slotStart = cursor;
-      const slotEnd = addMinutes(cursor, stepMin);
+      const timeLabel = `${startH}:${startM}`;
+      const timeEndLabel = `${endH}:${endM}`;
+      const isoStartsAt = `${datePrefix}T${timeLabel}:00`;
+      const isoEndsAt = `${datePrefix}T${timeEndLabel}:00`;
 
       // Skip slots inside exception blocks
       const blocked = exceptions.some((ex) => {
         if (!ex.blocked) return false;
-        if (!ex.startMin || !ex.endMin) {
+        if (ex.startMin == null || ex.endMin == null) {
           return isSameDay(ex.date, input.date);
         }
-        const exStart = new Date(dayStart);
-        exStart.setMinutes(ex.startMin);
-        const exEnd = new Date(dayStart);
-        exEnd.setMinutes(ex.endMin);
-        return slotStart < exEnd && slotEnd > exStart;
+        return currentMin < ex.endMin && (currentMin + stepMin) > ex.startMin;
       });
 
-      if (!blocked && slotStart > new Date()) {
+      if (!blocked) {
         const conflict = reservations.some((r) => {
           if (input.staffId && r.staffId && r.staffId !== input.staffId) return false;
           if (input.resourceId && r.resourceId && r.resourceId !== input.resourceId) return false;
-          return slotStart < r.endsAt && slotEnd > r.startsAt;
+
+          const rStart = new Date(r.startsAt);
+          const rEnd = new Date(r.endsAt);
+          const rStartMin = rStart.getHours() * 60 + rStart.getMinutes();
+          const rEndMin = rEnd.getHours() * 60 + rEnd.getMinutes();
+
+          return currentMin < rEndMin && (currentMin + stepMin) > rStartMin;
         });
 
         slots.push({
-          startsAt: slotStart,
-          endsAt: addMinutes(slotEnd, bufferMin),
+          startsAt: isoStartsAt,
+          endsAt: isoEndsAt,
+          timeStr: timeLabel,
           staffId: input.staffId,
           resourceId: input.resourceId,
           available: !conflict,
         });
       }
 
-      cursor = addMinutes(cursor, stepMin);
+      currentMin += stepMin;
     }
   }
 
