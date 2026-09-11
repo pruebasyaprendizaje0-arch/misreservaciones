@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "misreservaciones",
-    "tagline": "Bookings made simple for your business",
+    "appName": "reservaciones",
+    "tagline": "Simple reservations for your business",
     "signIn": "Sign in",
     "signOut": "Sign out",
     "signUp": "Sign up",

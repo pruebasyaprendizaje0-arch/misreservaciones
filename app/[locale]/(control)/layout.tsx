@@ -19,14 +19,14 @@ export default async function ControlLayout({ children }: { children: React.Reac
         <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/40 backdrop-blur-md shadow-sm">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
             {/* Logo */}
-            <Link href={`/${locale}`} className="flex items-center gap-2.5">
-              <img
-                src="/icon.png"
-                alt="misreservaciones logo"
-                className="h-9 w-9 rounded-xl object-contain shadow-lg shadow-cyan-500/20"
-              />
+            <Link href={`/${locale}`} className="flex items-center gap-2.5 group">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
               <span className="text-xl font-black text-white tracking-tight">
-                misreserva<span className="text-indigo-400 font-black">ciones</span>
+                reserva<span className="text-indigo-400 font-black">ciones</span>
               </span>
             </Link>
 
@@ -68,11 +68,15 @@ export default async function ControlLayout({ children }: { children: React.Reac
           <div className="mx-auto max-w-6xl px-4 py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <img src="/icon.png" alt="misreservaciones logo" className="h-7 w-7 rounded-lg object-contain" />
-                <span className="text-sm font-bold text-white">misreservaciones</span>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-sm shrink-0">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-sm font-bold text-white">reservaciones</span>
               </div>
               <p className="text-xs text-slate-400">
-                © {new Date().getFullYear()} misreservaciones · Directorio de negocios del Ecuador 🇪🇨
+                © {new Date().getFullYear()} reservaciones · Directorio de negocios del Ecuador 🇪🇨
               </p>
               <div className="flex gap-4 text-xs text-slate-300">
                 <Link href={`/${locale}/sign-up`} className="hover:text-indigo-400 transition">Registrar negocio</Link>
