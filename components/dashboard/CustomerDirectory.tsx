@@ -786,7 +786,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
       {/* Main CRM Grid Layout */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Left Panel: Filters & Customer Directory */}
-        <div className="md:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[78vh]">
+        <div className={`md:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[78vh] ${selectedCustomer ? 'hidden md:flex' : 'flex'}`}>
           {/* Action Header */}
           <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
             <div className="flex gap-2">
@@ -967,11 +967,25 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
         </div>
 
         {/* Right Panel: Ficha 360° del Cliente */}
-        <div className="md:col-span-2 space-y-6">
+        <div className={`md:col-span-2 space-y-6 ${!selectedCustomer ? 'hidden md:block' : 'block'}`}>
           {selectedCustomer ? (
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+              {/* Mobile Back Button */}
+              <div className="p-3 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 md:hidden flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomer(null)}
+                  className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs"
+                >
+                  ← Volver a lista de {term.customer.toLowerCase()}s
+                </button>
+                <span className="text-[11px] font-bold text-slate-500">
+                  Ficha de {term.customer}
+                </span>
+              </div>
+
               {/* Header Profile Summary */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 space-y-4">
+              <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-extrabold text-lg flex items-center justify-center shadow-md">
@@ -1353,11 +1367,11 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                     {isMedico && (
                       <div className="space-y-6">
                         {/* Sub-tab navigation bar for Medical & Dental */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1">
+                        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1 overflow-x-auto no-scrollbar">
                           <button
                             type="button"
                             onClick={() => setMedicalSubTab('clinical')}
-                            className={`pb-2 px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 ${
+                            className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
                               medicalSubTab === 'clinical'
                                 ? 'border-rose-600 text-rose-600 dark:text-rose-400'
                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -1368,7 +1382,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                           <button
                             type="button"
                             onClick={() => setMedicalSubTab('odontogram')}
-                            className={`pb-2 px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 ${
+                            className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
                               medicalSubTab === 'odontogram'
                                 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'

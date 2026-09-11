@@ -32,14 +32,14 @@ interface OdontogramProps {
   readOnly?: boolean;
 }
 
-const CONDITION_COLORS: Record<ToothCondition, { bg: string; text: string; label: string; border: string }> = {
-  SANO: { bg: 'bg-white dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', label: 'Sano', border: 'border-slate-300 dark:border-slate-700' },
-  CARIES: { bg: 'bg-red-500', text: 'text-white', label: 'Caries (Rojo)', border: 'border-red-600' },
-  RESINA: { bg: 'bg-blue-500', text: 'text-white', label: 'Resina / Obturado (Azul)', border: 'border-blue-600' },
-  CORONA: { bg: 'bg-amber-500', text: 'text-white', label: 'Corona / Prótesis (Dorado)', border: 'border-amber-600' },
-  ENDODONCIA: { bg: 'bg-purple-600', text: 'text-white', label: 'Endodoncia (Morado)', border: 'border-purple-700' },
-  AUSENTE: { bg: 'bg-slate-400 dark:bg-slate-600', text: 'text-white', label: 'Ausente / Extracción (Gris)', border: 'border-slate-500' },
-  SELLADOR: { bg: 'bg-emerald-500', text: 'text-white', label: 'Sellador (Verde)', border: 'border-emerald-600' },
+const CONDITION_COLORS: Record<ToothCondition, { bg: string; text: string; label: string; border: string; emoji: string }> = {
+  SANO: { bg: 'bg-white dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', label: 'Sano', border: 'border-slate-300 dark:border-slate-700', emoji: '⚪' },
+  CARIES: { bg: 'bg-red-500', text: 'text-white', label: 'Caries (Rojo)', border: 'border-red-600', emoji: '🔴' },
+  RESINA: { bg: 'bg-blue-500', text: 'text-white', label: 'Resina / Obturado (Azul)', border: 'border-blue-600', emoji: '🔵' },
+  CORONA: { bg: 'bg-amber-500', text: 'text-white', label: 'Corona / Prótesis (Dorado)', border: 'border-amber-600', emoji: '🟡' },
+  ENDODONCIA: { bg: 'bg-purple-600', text: 'text-white', label: 'Endodoncia (Morado)', border: 'border-purple-700', emoji: '🟣' },
+  AUSENTE: { bg: 'bg-slate-400 dark:bg-slate-600', text: 'text-white', label: 'Ausente / Extracción (Gris)', border: 'border-slate-500', emoji: '❌' },
+  SELLADOR: { bg: 'bg-emerald-500', text: 'text-white', label: 'Sellador (Verde)', border: 'border-emerald-600', emoji: '🟢' },
 };
 
 const CONDITION_FILLS: Record<ToothCondition, string> = {
@@ -87,6 +87,8 @@ function formatToothNumber(fdiNum: number, system: 'FDI' | 'UNIVERSAL'): string 
   return String(fdiNum);
 }
 
+type MobileQuadrantView = 'ALL' | 'UPPER' | 'LOWER' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
+
 export function Odontogram({ initialData = [], onChange, readOnly = false }: OdontogramProps) {
   const [teethMap, setTeethMap] = useState<Record<number, ToothData>>(() => {
     const map: Record<number, ToothData> = {};
@@ -103,6 +105,8 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
   const [selectedSurface, setSelectedSurface] = useState<keyof ToothSurfaceState | 'OVERALL'>('OVERALL');
   const [toothNote, setToothNote] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileQuadrant, setMobileQuadrant] = useState<MobileQuadrantView>('ALL');
+  const [showMobileToothModal, setShowMobileToothModal] = useState(false);
 
   function getTooth(toothNum: number): ToothData {
     return (
@@ -161,7 +165,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
   );
 
   // Render SVG Tooth with 5 surfaces
-  function renderToothSVG(toothNum: number, isLarge: boolean = false) {
+  function renderToothSVG(toothNum: number, isLarge: boolean = false, isMobileHighlight: boolean = false) {
     const data = getTooth(toothNum);
     const isSelected = selectedTooth === toothNum;
 
@@ -170,6 +174,12 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
     const fillM = CONDITION_FILLS[data.surfaces.mesial || data.overallState];
     const fillD = CONDITION_FILLS[data.surfaces.distal || data.overallState];
     const fillO = CONDITION_FILLS[data.surfaces.oclusal || data.overallState];
+
+    const sizeClass = isLarge
+      ? 'w-10 h-10 sm:w-12 sm:h-12'
+      : isMobileHighlight
+      ? 'w-9 h-9 sm:w-10 sm:h-10'
+      : 'w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9';
 
     return (
       <div
@@ -180,19 +190,23 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
           if (!readOnly) {
             updateToothState(toothNum, selectedCondition, selectedSurface === 'OVERALL' ? undefined : selectedSurface);
           }
+          // On mobile or narrow view, open detail modal if needed
+          if (window.innerWidth < 768) {
+            setShowMobileToothModal(true);
+          }
         }}
-        className={`relative flex flex-col items-center p-0.5 sm:p-1 rounded-lg sm:rounded-xl border transition-all cursor-pointer select-none shrink-0 ${
+        className={`relative flex flex-col items-center p-1 sm:p-1.5 rounded-xl border transition-all cursor-pointer select-none shrink-0 ${
           isSelected
             ? 'border-indigo-600 bg-indigo-50/90 dark:bg-indigo-950/80 shadow-md ring-2 ring-indigo-500 scale-105 z-10'
             : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-600'
         }`}
       >
-        <span className="text-[9px] sm:text-xs font-black text-slate-800 dark:text-slate-200 mb-0.5">
+        <span className="text-[10px] sm:text-xs font-black text-slate-800 dark:text-slate-200 mb-0.5">
           {formatToothNumber(toothNum, numberingSystem)}
         </span>
 
         {/* Tooth SVG Surface Diagram */}
-        <div className={`relative ${isLarge ? 'w-7 h-7 sm:w-11 sm:h-11 md:w-12 md:h-12' : 'w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9'}`}>
+        <div className={`relative ${sizeClass}`}>
           <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xs">
             {/* Vestibular (Top) */}
             <polygon points="0,0 100,0 75,25 25,25" fill={fillV} stroke="#475569" strokeWidth="3" />
@@ -232,179 +246,351 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
         </div>
 
         {/* State Badge */}
-        <span className="mt-0.5 text-[8px] sm:text-[9px] font-bold truncate max-w-[34px] sm:max-w-[42px] text-center text-slate-500 dark:text-slate-400">
+        <span className="mt-0.5 text-[8px] sm:text-[9px] font-bold truncate max-w-[38px] sm:max-w-[46px] text-center text-slate-500 dark:text-slate-400">
           {data.overallState}
         </span>
       </div>
     );
   }
 
-  const renderChartBody = (isLarge: boolean = false) => (
-    <div className="space-y-4 bg-white dark:bg-slate-900 p-2 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-x-auto">
-      {dentitionType === 'ADULT' ? (
-        <>
-          {/* Upper Arch */}
-          <div>
-            <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2 flex items-center justify-center gap-2">
-              <span>Arcada Superior (Maxilar Superior) — 16 Dientes (18 a 28)</span>
-            </div>
-            <div className="flex items-center justify-between gap-1 w-full min-w-[620px] sm:min-w-0">
-              {/* Cuadrante 1 (18-11: 8 Dientes) */}
-              <div className="flex items-center justify-end gap-0.5 sm:gap-1 border-r-2 border-indigo-500/40 pr-1 sm:pr-2 flex-1">
-                {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-              {/* Cuadrante 2 (21-28: 8 Dientes) */}
-              <div className="flex items-center justify-start gap-0.5 sm:gap-1 pl-1 sm:pl-2 flex-1">
-                {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-            </div>
-          </div>
+  // Large interactive tooth editor SVG for modal or focus on mobile
+  function renderLargeInteractiveTooth(toothNum: number) {
+    const data = getTooth(toothNum);
+    const fillV = CONDITION_FILLS[data.surfaces.vestibular || data.overallState];
+    const fillL = CONDITION_FILLS[data.surfaces.lingual || data.overallState];
+    const fillM = CONDITION_FILLS[data.surfaces.mesial || data.overallState];
+    const fillD = CONDITION_FILLS[data.surfaces.distal || data.overallState];
+    const fillO = CONDITION_FILLS[data.surfaces.oclusal || data.overallState];
 
-          <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-3" />
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative w-36 h-36 sm:w-44 sm:h-44 drop-shadow-md">
+          <svg viewBox="0 0 100 100" className="w-full h-full cursor-pointer select-none">
+            {/* Vestibular (Top) */}
+            <polygon
+              points="0,0 100,0 75,25 25,25"
+              fill={fillV}
+              stroke="#334155"
+              strokeWidth="2.5"
+              onClick={() => updateToothState(toothNum, selectedCondition, 'vestibular')}
+              className="hover:opacity-80 transition"
+            />
+            {/* Distal (Right) */}
+            <polygon
+              points="100,0 100,100 75,75 75,25"
+              fill={fillD}
+              stroke="#334155"
+              strokeWidth="2.5"
+              onClick={() => updateToothState(toothNum, selectedCondition, 'distal')}
+              className="hover:opacity-80 transition"
+            />
+            {/* Lingual (Bottom) */}
+            <polygon
+              points="100,100 0,100 25,75 75,75"
+              fill={fillL}
+              stroke="#334155"
+              strokeWidth="2.5"
+              onClick={() => updateToothState(toothNum, selectedCondition, 'lingual')}
+              className="hover:opacity-80 transition"
+            />
+            {/* Mesial (Left) */}
+            <polygon
+              points="0,100 0,0 25,25 25,75"
+              fill={fillM}
+              stroke="#334155"
+              strokeWidth="2.5"
+              onClick={() => updateToothState(toothNum, selectedCondition, 'mesial')}
+              className="hover:opacity-80 transition"
+            />
+            {/* Oclusal (Center) */}
+            <polygon
+              points="25,25 75,25 75,75 25,75"
+              fill={fillO}
+              stroke="#334155"
+              strokeWidth="2.5"
+              onClick={() => updateToothState(toothNum, selectedCondition, 'oclusal')}
+              className="hover:opacity-80 transition"
+            />
 
-          {/* Lower Arch */}
-          <div>
-            <div className="flex items-center justify-between gap-1 w-full min-w-[620px] sm:min-w-0">
-              {/* Cuadrante 4 (48-41: 8 Dientes) */}
-              <div className="flex items-center justify-end gap-0.5 sm:gap-1 border-r-2 border-indigo-500/40 pr-1 sm:pr-2 flex-1">
-                {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-              {/* Cuadrante 3 (31-38: 8 Dientes) */}
-              <div className="flex items-center justify-start gap-0.5 sm:gap-1 pl-1 sm:pl-2 flex-1">
-                {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-            </div>
-            <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2 flex items-center justify-center gap-2">
-              <span>Arcada Inferior (Mandíbula) — 16 Dientes (48 a 38)</span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Child Upper */}
-          <div>
-            <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
-              Dentición Decidua Superior — 10 Dientes (55 a 65)
-            </div>
-            <div className="flex items-center justify-between gap-1 w-full min-w-[450px] sm:min-w-0">
-              <div className="flex items-center justify-end gap-0.5 sm:gap-1 border-r-2 border-indigo-500/40 pr-1 sm:pr-2 flex-1">
-                {CHILD_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-              <div className="flex items-center justify-start gap-0.5 sm:gap-1 pl-1 sm:pl-2 flex-1">
-                {CHILD_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-3" />
-
-          {/* Child Lower */}
-          <div>
-            <div className="flex items-center justify-between gap-1 w-full min-w-[450px] sm:min-w-0">
-              <div className="flex items-center justify-end gap-0.5 sm:gap-1 border-r-2 border-indigo-500/40 pr-1 sm:pr-2 flex-1">
-                {CHILD_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-              <div className="flex items-center justify-start gap-0.5 sm:gap-1 pl-1 sm:pl-2 flex-1">
-                {CHILD_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge))}
-              </div>
-            </div>
-            <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2">
-              Dentición Decidua Inferior — 10 Dientes (85 a 75)
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="space-y-5 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-      {/* Header controls & Palette */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>🦷</span> Odontograma Clínico Interactivo (FDI)
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Haz clic en una pieza dental para aplicar la condición o seleccionar la superficie afectada.
-          </p>
+            {/* Labels overlay */}
+            <text x="50" y="16" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#1e293b" pointerEvents="none">V</text>
+            <text x="88" y="53" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#1e293b" pointerEvents="none">D</text>
+            <text x="50" y="90" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#1e293b" pointerEvents="none">L</text>
+            <text x="12" y="53" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#1e293b" pointerEvents="none">M</text>
+            <text x="50" y="53" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#1e293b" pointerEvents="none">O</text>
+          </svg>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium text-center">
+          Toca cualquier sección: <strong>V</strong>estibular, <strong>D</strong>istal, <strong>L</strong>ingual, <strong>M</strong>esial u <strong>O</strong>clusal
+        </p>
+
+        {/* Quick overall apply button */}
+        <button
+          type="button"
+          onClick={() => updateToothState(toothNum, selectedCondition, undefined)}
+          className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition shadow-sm flex items-center justify-center gap-1.5"
+        >
+          <span>⚡ Aplicar a Pieza Completa ({selectedCondition})</span>
+        </button>
+      </div>
+    );
+  }
+
+  const renderChartBody = (isLarge: boolean = false) => {
+    const isAdult = dentitionType === 'ADULT';
+
+    const showUpper = mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1' || mobileQuadrant === 'Q2';
+    const showLower = mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3' || mobileQuadrant === 'Q4';
+
+    return (
+      <div className="space-y-4 bg-white dark:bg-slate-900 p-2 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
+        {/* Mobile View Hint */}
+        <div className="flex sm:hidden items-center justify-between text-[11px] text-indigo-600 dark:text-indigo-400 font-bold px-1">
+          <span>👆 Desliza horizontalmente o toca para editar</span>
+          <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
+            {mobileQuadrant === 'ALL' ? 'Vista Completa' : mobileQuadrant}
+          </span>
+        </div>
+
+        {isAdult ? (
+          <>
+            {/* Upper Arch */}
+            {showUpper && (
+              <div>
+                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2 flex items-center justify-center gap-2">
+                  <span>Arcada Superior (Maxilar) — 16 Dientes (18 a 28)</span>
+                </div>
+                <div className="overflow-x-auto touch-pan-x pb-2">
+                  <div className="flex items-center justify-center gap-1 min-w-[580px] md:min-w-0 mx-auto">
+                    {/* Cuadrante 1 (18-11) */}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
+                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                        {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                    {/* Cuadrante 2 (21-28) */}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
+                      <div className="flex items-center justify-start gap-1 pl-2">
+                        {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showUpper && showLower && (
+              <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-2" />
+            )}
+
+            {/* Lower Arch */}
+            {showLower && (
+              <div>
+                <div className="overflow-x-auto touch-pan-x pb-2">
+                  <div className="flex items-center justify-center gap-1 min-w-[580px] md:min-w-0 mx-auto">
+                    {/* Cuadrante 4 (48-41) */}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
+                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                        {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                    {/* Cuadrante 3 (31-38) */}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
+                      <div className="flex items-center justify-start gap-1 pl-2">
+                        {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2 flex items-center justify-center gap-2">
+                  <span>Arcada Inferior (Mandíbula) — 16 Dientes (48 a 38)</span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Child Upper */}
+            {showUpper && (
+              <div>
+                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                  Dentición Infantil Superior — 10 Dientes (55 a 65)
+                </div>
+                <div className="overflow-x-auto touch-pan-x pb-2">
+                  <div className="flex items-center justify-center gap-1 min-w-[420px] md:min-w-0 mx-auto">
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
+                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                        {CHILD_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
+                      <div className="flex items-center justify-start gap-1 pl-2">
+                        {CHILD_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showUpper && showLower && (
+              <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-2" />
+            )}
+
+            {/* Child Lower */}
+            {showLower && (
+              <div>
+                <div className="overflow-x-auto touch-pan-x pb-2">
+                  <div className="flex items-center justify-center gap-1 min-w-[420px] md:min-w-0 mx-auto">
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
+                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                        {CHILD_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
+                      <div className="flex items-center justify-start gap-1 pl-2">
+                        {CHILD_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2">
+                  Dentición Infantil Inferior — 10 Dientes (85 a 75)
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-5 bg-slate-50 dark:bg-slate-900/50 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+      {/* Header controls & Palette */}
+      <div className="flex flex-col gap-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span>🦷</span> Odontograma Clínico Interactivo (FDI)
+            </h3>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Haz clic o toca en una pieza dental para registrar tratamientos por superficie o pieza completa.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 transition border border-slate-700 flex items-center gap-1.5 shadow-xs"
+            >
+              <span>🔍</span>
+              <span className="hidden sm:inline">Pantalla Completa</span>
+              <span className="sm:hidden">Ampliar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Dentition & Numbering System Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           {/* Dentition Type */}
-          <button
-            type="button"
-            onClick={() => setDentitionType('ADULT')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${
-              dentitionType === 'ADULT'
-                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            🦷 Dentición Adulto (32)
-          </button>
-          <button
-            type="button"
-            onClick={() => setDentitionType('CHILD')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${
-              dentitionType === 'CHILD'
-                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            👶 Dentición Infantil (20)
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setDentitionType('ADULT')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${
+                dentitionType === 'ADULT'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              🦷 Adulto (32)
+            </button>
+            <button
+              type="button"
+              onClick={() => setDentitionType('CHILD')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${
+                dentitionType === 'CHILD'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              👶 Infantil (20)
+            </button>
+          </div>
 
           {/* Numbering System Toggle */}
           <div className="flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-xs">
             <button
               type="button"
               onClick={() => setNumberingSystem('UNIVERSAL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${
+              className={`px-2 py-1 rounded-lg text-xs font-extrabold transition ${
                 numberingSystem === 'UNIVERSAL'
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              🔢 Universal (1 - 32)
+              🔢 Universal
             </button>
             <button
               type="button"
               onClick={() => setNumberingSystem('FDI')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${
+              className={`px-2 py-1 rounded-lg text-xs font-extrabold transition ${
                 numberingSystem === 'FDI'
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              🌐 FDI (2 dígitos)
+              🌐 FDI
             </button>
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setIsFullscreen(true)}
-            className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 transition border border-slate-700 flex items-center gap-1.5"
-          >
-            <span>🔍</span>
-            <span>Pantalla Completa</span>
-          </button>
+        {/* Mobile View Filters (Arcadas & Cuadrantes para Celular) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+          <span className="text-[11px] font-bold text-slate-500 shrink-0 mr-1">Vista:</span>
+          {(
+            [
+              { id: 'ALL', label: '⭐ Completo' },
+              { id: 'UPPER', label: '⬆️ Arcada Superior' },
+              { id: 'LOWER', label: '⬇️ Arcada Inferior' },
+              { id: 'Q1', label: '1️⃣ Q1 Sup. Der' },
+              { id: 'Q2', label: '2️⃣ Q2 Sup. Izq' },
+              { id: 'Q3', label: '3️⃣ Q3 Inf. Izq' },
+              { id: 'Q4', label: '4️⃣ Q4 Inf. Der' },
+            ] as const
+          ).map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => setMobileQuadrant(q.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition border ${
+                mobileQuadrant === q.id
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Palette Toolbar & Surface Selector */}
       {!readOnly && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              1. Elige la Condición / Tratamiento:
+              1. Selecciona Condición / Tratamiento:
             </span>
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <span>Superficie Objetivo:</span>
+              <span className="shrink-0">Superficie:</span>
               <select
                 value={selectedSurface}
                 onChange={(e) => setSelectedSurface(e.target.value as any)}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"
+                className="w-full sm:w-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"
               >
                 <option value="OVERALL">⚡ Pieza Completa</option>
                 <option value="vestibular">⬆ Vestibular (V)</option>
@@ -416,7 +602,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {(Object.keys(CONDITION_COLORS) as ToothCondition[]).map((cond) => {
               const info = CONDITION_COLORS[cond];
               const isSel = selectedCondition === cond;
@@ -425,13 +611,13 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                   key={cond}
                   type="button"
                   onClick={() => setSelectedCondition(cond)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border transition ${
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold border transition active:scale-95 ${
                     isSel
-                      ? 'ring-2 ring-indigo-500 shadow-sm border-indigo-600'
+                      ? 'ring-2 ring-indigo-500 shadow-sm border-indigo-600 scale-102'
                       : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'
                   } ${info.bg} ${info.text}`}
                 >
-                  <span>{cond === 'CARIES' ? '🔴' : cond === 'RESINA' ? '🔵' : cond === 'CORONA' ? '🟡' : cond === 'ENDODONCIA' ? '🟣' : cond === 'AUSENTE' ? '❌' : cond === 'SELLADOR' ? '🟢' : '⚪'}</span>
+                  <span>{info.emoji}</span>
                   <span>{info.label}</span>
                 </button>
               );
@@ -443,18 +629,30 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
       {/* Main Chart Body */}
       {renderChartBody(false)}
 
-      {/* Selected Tooth Detail & Note Panel */}
+      {/* Selected Tooth Detail & Note Panel (Desktop / Tablet) */}
       {selectedTooth && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-200 dark:border-indigo-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
-              Pieza Dental #{formatToothNumber(selectedTooth, numberingSystem)} (FDI #{selectedTooth} · Universal #{FDI_TO_UNIVERSAL[selectedTooth] || selectedTooth})
-            </span>
-            <div className="flex items-center gap-2 mt-1 text-xs text-slate-700 dark:text-slate-300 font-bold">
-              <span>Estado General:</span>
-              <span className={`px-2 py-0.5 rounded text-[11px] ${CONDITION_COLORS[getTooth(selectedTooth).overallState].bg} ${CONDITION_COLORS[getTooth(selectedTooth).overallState].text}`}>
-                {getTooth(selectedTooth).overallState}
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-indigo-200 dark:border-indigo-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-sm border border-indigo-200 dark:border-indigo-800">
+              #{formatToothNumber(selectedTooth, numberingSystem)}
+            </div>
+            <div>
+              <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+                Pieza #{formatToothNumber(selectedTooth, numberingSystem)} (FDI #{selectedTooth} · Univ #{FDI_TO_UNIVERSAL[selectedTooth] || selectedTooth})
               </span>
+              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-700 dark:text-slate-300 font-bold">
+                <span>Estado:</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${CONDITION_COLORS[getTooth(selectedTooth).overallState].bg} ${CONDITION_COLORS[getTooth(selectedTooth).overallState].text}`}>
+                  {getTooth(selectedTooth).overallState}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileToothModal(true)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 underline ml-2 font-bold cursor-pointer"
+                >
+                  🔍 Editar Superficies (V/M/D/L/O)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -463,16 +661,16 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
               <input
                 type="text"
                 className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-slate-100"
-                placeholder="Observación o tratamiento de esta pieza..."
+                placeholder="Observación de esta pieza..."
                 value={toothNote}
                 onChange={(e) => setToothNote(e.target.value)}
               />
               <button
                 type="button"
                 onClick={() => saveToothNote(selectedTooth, toothNote)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-xs"
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-xs shrink-0"
               >
-                Guardar Nota
+                Guardar
               </button>
             </div>
           )}
@@ -480,39 +678,130 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
       )}
 
       {/* Summary KPI Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-          <span className="text-xs text-slate-500 font-medium">🔴 Caries</span>
-          <p className="text-lg font-black text-red-500">{stats.CARIES || 0}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-1">
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">🔴 Caries</span>
+          <p className="text-base sm:text-lg font-black text-red-500">{stats.CARIES || 0}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-          <span className="text-xs text-slate-500 font-medium">🔵 Obturados / Resina</span>
-          <p className="text-lg font-black text-blue-500">{stats.RESINA || 0}</p>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">🔵 Resina / Obtur.</span>
+          <p className="text-base sm:text-lg font-black text-blue-500">{stats.RESINA || 0}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-          <span className="text-xs text-slate-500 font-medium">🟣 Endodoncias</span>
-          <p className="text-lg font-black text-purple-500">{stats.ENDODONCIA || 0}</p>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">🟣 Endodoncias</span>
+          <p className="text-base sm:text-lg font-black text-purple-500">{stats.ENDODONCIA || 0}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-          <span className="text-xs text-slate-500 font-medium">❌ Dientes Ausentes</span>
-          <p className="text-lg font-black text-slate-400">{stats.AUSENTE || 0}</p>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">❌ Ausentes</span>
+          <p className="text-base sm:text-lg font-black text-slate-400">{stats.AUSENTE || 0}</p>
         </div>
       </div>
 
+      {/* ── MODAL DE EDICIÓN DE SUPERFICIES PARA CELULAR & TABLET ── */}
+      {showMobileToothModal && selectedTooth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <span>🦷</span> Pieza Dental #{formatToothNumber(selectedTooth, numberingSystem)}
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  FDI: #{selectedTooth} · Universal: #{FDI_TO_UNIVERSAL[selectedTooth] || selectedTooth}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileToothModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Condition selector inside modal */}
+            <div>
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+                1. Condición a aplicar:
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(Object.keys(CONDITION_COLORS) as ToothCondition[]).map((cond) => {
+                  const info = CONDITION_COLORS[cond];
+                  const isSel = selectedCondition === cond;
+                  return (
+                    <button
+                      key={cond}
+                      type="button"
+                      onClick={() => setSelectedCondition(cond)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold border transition ${
+                        isSel
+                          ? 'ring-2 ring-indigo-500 shadow-sm border-indigo-600'
+                          : 'border-slate-200 dark:border-slate-800'
+                      } ${info.bg} ${info.text}`}
+                    >
+                      <span>{info.emoji}</span>
+                      <span className="truncate">{info.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Large interactive tooth diagram */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+              {renderLargeInteractiveTooth(selectedTooth)}
+            </div>
+
+            {/* Note field inside modal */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
+                Observaciones clínicas / tratamiento:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                  placeholder="Ej. Caries oclusal profunda..."
+                  value={toothNote}
+                  onChange={(e) => setToothNote(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => saveToothNote(selectedTooth, toothNote)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMobileToothModal(false)}
+                className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-extrabold text-xs hover:bg-slate-800 transition"
+              >
+                Cerrar Editor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MODAL FULLSCREEN ODONTOGRAM ── */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn overflow-y-auto">
-          <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 my-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+          <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>🦷</span> Odontograma Clínico — Vista Completa Ampliada
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span>🦷</span> Odontograma Clínico — Vista Completa
               </h3>
               <button
                 type="button"
                 onClick={() => setIsFullscreen(false)}
-                className="px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-200 transition text-xs flex items-center gap-1"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-200 transition text-xs"
               >
-                ✕ Cerrar Vista
+                ✕ Cerrar
               </button>
             </div>
 
@@ -524,7 +813,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                 onClick={() => setIsFullscreen(false)}
                 className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 transition text-xs shadow-sm"
               >
-                Listo / Aceptar
+                Listo
               </button>
             </div>
           </div>
