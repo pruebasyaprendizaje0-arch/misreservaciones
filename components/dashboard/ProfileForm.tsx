@@ -59,6 +59,14 @@ export function ProfileForm({ slug, initial, locale }: Props) {
     () => initial.metadata?.googleMapsEmbed || ''
   );
 
+  const [digitalMenuUrl, setDigitalMenuUrl] = useState<string>(
+    () => initial.metadata?.digitalMenuUrl || initial.metadata?.menuUrl || ''
+  );
+
+  const [virtualGuideUrl, setVirtualGuideUrl] = useState<string>(
+    () => initial.metadata?.virtualGuideUrl || initial.metadata?.ubicameGuideUrl || ''
+  );
+
   const [paymentDetails, setPaymentDetails] = useState({
     bankName: initial.metadata?.paymentDetails?.bankName || 'Banco Pichincha',
     accountType: initial.metadata?.paymentDetails?.accountType || 'Ahorros',
@@ -142,6 +150,8 @@ export function ProfileForm({ slug, initial, locale }: Props) {
       ...(initial.metadata || {}),
       commonAreaPhotos,
       googleMapsEmbed: googleMapsEmbed.trim() || null,
+      digitalMenuUrl: digitalMenuUrl.trim() || null,
+      virtualGuideUrl: virtualGuideUrl.trim() || null,
       paymentDetails,
     };
 
@@ -249,6 +259,60 @@ export function ProfileForm({ slug, initial, locale }: Props) {
               onChange={(e) => setField('phone', e.target.value)}
               placeholder="+593 99 999 9999"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Enlaces Digitales: Menú Digital & Guía Virtual ubicame.info */}
+      <section className="bg-slate-800/40 rounded-xl border border-slate-800/80 p-6 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <span className="text-xl">🌐</span> Enlaces Digitales y Experiencias Virtuales
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            Agrega accesos directos visibles en tu página pública para que los clientes consulten tu carta/menú o exploren tu guía turística en <strong>ubicame.info</strong>.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 pt-2">
+          {/* Menú Digital */}
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span>📖</span> Menú Digital / Carta Virtual
+              </span>
+              <span className="text-[11px] text-indigo-400 font-normal">Opcional</span>
+            </label>
+            <input
+              type="url"
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={digitalMenuUrl}
+              onChange={(e) => setDigitalMenuUrl(e.target.value)}
+              placeholder="https://menu.mismenu.com o PDF en Drive..."
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Enlace directo al menú de platos, carta de bebidas o catálogo digital.
+            </p>
+          </div>
+
+          {/* Guía Virtual ubicame.info */}
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span>🧭</span> Guía Virtual 360° (ubicame.info)
+              </span>
+              <span className="text-[11px] text-indigo-400 font-normal">Opcional</span>
+            </label>
+            <input
+              type="url"
+              className="block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={virtualGuideUrl}
+              onChange={(e) => setVirtualGuideUrl(e.target.value)}
+              placeholder="https://ubicame.info/tu-negocio..."
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Enlace de tu guía interactiva o ficha turística 360° en ubicame.info.
+            </p>
           </div>
         </div>
       </section>

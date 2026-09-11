@@ -48,7 +48,15 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ slug: str
     const accessToken = (session as any)?.accessToken;
     const userId = (session.user as { id: string }).id;
     const userRole = (session.user as { role?: string }).role;
-    const isAdmin = userRole === 'PLATFORM_ADMIN';
+    const userEmail = session.user.email?.toLowerCase().trim() || '';
+
+    const superAdminEmails = [
+      'pruebasyaprendizaje0@gmail.com',
+      'fhernandezcalle@gmail.com',
+      process.env.SUPER_ADMIN_EMAIL?.toLowerCase().trim(),
+    ].filter(Boolean);
+
+    const isAdmin = userRole === 'PLATFORM_ADMIN' || superAdminEmails.includes(userEmail);
 
     const json = await req.json().catch(() => null);
 

@@ -200,6 +200,11 @@ export default async function TenantHome({
       ? `https://www.google.com/maps?q=${tenant.lat},${tenant.lng}`
       : `https://www.google.com/maps?q=${encodeURIComponent(`${tenant.name}, ${fullAddress}`)}`;
 
+  const digitalMenuUrl =
+    (tenant.metadata as any)?.digitalMenuUrl || (tenant.metadata as any)?.menuUrl || null;
+  const virtualGuideUrl =
+    (tenant.metadata as any)?.virtualGuideUrl || (tenant.metadata as any)?.ubicameGuideUrl || null;
+
   // ─── GEO & AEO JSON-LD Schemas ───
   const businessSchema = buildBusinessSchema(tenant, locale);
   const servicesSchema = buildServicesSchema(services, tenant, locale);
@@ -407,6 +412,30 @@ export default async function TenantHome({
             <LanguageToggle currentLocale={locale} />
             <ThemeToggle />
 
+            {digitalMenuUrl && (
+              <a
+                href={digitalMenuUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-5 py-3 text-xs font-extrabold shadow-lg shadow-orange-500/20 transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              >
+                <span className="text-base">📖</span>
+                <span>{isEn ? 'Digital Menu' : 'Menú Digital'}</span>
+              </a>
+            )}
+
+            {virtualGuideUrl && (
+              <a
+                href={virtualGuideUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white px-5 py-3 text-xs font-extrabold shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              >
+                <span className="text-base">🧭</span>
+                <span>{isEn ? 'Virtual Guide' : 'Guía Virtual ubicame.info'}</span>
+              </a>
+            )}
+
             {whatsappUrl && (
               <a
                 href={whatsappUrl}
@@ -439,6 +468,87 @@ export default async function TenantHome({
           </div>
         </div>
       </div>
+
+      {/* ─── Digital Menu & Virtual Guide Interactive Cards ─── */}
+      {(digitalMenuUrl || virtualGuideUrl) && (
+        <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {digitalMenuUrl && (
+              <a
+                href={digitalMenuUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent dark:from-amber-950/40 dark:via-orange-950/20 dark:to-slate-900 border border-amber-300/40 dark:border-amber-800/50 p-6 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:border-amber-400 dark:hover:border-amber-600 flex flex-col justify-between gap-4 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl font-bold shadow-xs shrink-0">
+                      📖
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-900">
+                        {isEn ? 'Interactive Menu' : 'Carta Digital'}
+                      </span>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                        {isEn ? 'Digital Menu & Prices' : 'Menú Digital y Carta'}
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="text-lg text-amber-500 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                    ↗
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {isEn
+                    ? 'Explore our full list of dishes, drinks, specialties and current pricing online directly on your smartphone.'
+                    : 'Explora nuestra lista completa de platos, bebidas, especialidades y precios actualizados directamente en tu celular.'}
+                </p>
+                <div className="inline-flex items-center gap-2 text-xs font-black text-amber-600 dark:text-amber-400 pt-1">
+                  <span>{isEn ? 'View Digital Menu' : 'Abrir Menú Digital'}</span>
+                  <span>→</span>
+                </div>
+              </a>
+            )}
+
+            {virtualGuideUrl && (
+              <a
+                href={virtualGuideUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent dark:from-sky-950/40 dark:via-indigo-950/20 dark:to-slate-900 border border-sky-300/40 dark:border-sky-800/50 p-6 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-sky-400 dark:hover:border-sky-600 flex flex-col justify-between gap-4 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center text-2xl font-bold shadow-xs shrink-0">
+                      🧭
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-100/80 dark:bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-900">
+                        ubicame.info
+                      </span>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                        {isEn ? 'Virtual Guide & 360° Tour' : 'Guía Virtual & Tour 360°'}
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="text-lg text-sky-500 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                    ↗
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {isEn
+                    ? 'Discover our official virtual guide on ubicame.info with 360° tours, attractions, and local travel recommendations.'
+                    : 'Conoce nuestra ficha interactiva en ubicame.info con recorridos 360°, atractivos y recomendaciones turísticas de la zona.'}
+                </p>
+                <div className="inline-flex items-center gap-2 text-xs font-black text-sky-600 dark:text-sky-400 pt-1">
+                  <span>{isEn ? 'Explore ubicame.info Guide' : 'Ver en ubicame.info'}</span>
+                  <span>→</span>
+                </div>
+              </a>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ─── Description Section ─── */}
       {tenant.description && (
