@@ -1061,11 +1061,11 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 )}
 
                 {/* Tabs Selector */}
-                <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pt-2 text-xs font-bold">
+                <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 sm:gap-2 pt-2 text-xs font-bold overflow-x-auto no-scrollbar">
                   <button
                     type="button"
                     onClick={() => setActiveTab('general')}
-                    className={`pb-2.5 px-3 transition border-b-2 ${
+                    className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
                       activeTab === 'general'
                         ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
@@ -1076,7 +1076,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   <button
                     type="button"
                     onClick={() => setActiveTab('industry')}
-                    className={`pb-2.5 px-3 transition border-b-2 ${
+                    className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
                       activeTab === 'industry'
                         ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
@@ -1093,7 +1093,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   <button
                     type="button"
                     onClick={() => setActiveTab('timeline')}
-                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 ${
+                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
                       activeTab === 'timeline'
                         ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
@@ -1109,7 +1109,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   <button
                     type="button"
                     onClick={() => setActiveTab('history')}
-                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 ${
+                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
                       activeTab === 'history'
                         ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'

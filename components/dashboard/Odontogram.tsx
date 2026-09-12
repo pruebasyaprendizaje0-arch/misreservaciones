@@ -345,64 +345,106 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
 
     return (
       <div className="space-y-4 bg-white dark:bg-slate-900 p-2 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
-        {/* Mobile View Hint */}
-        <div className="flex sm:hidden items-center justify-between text-[11px] text-indigo-600 dark:text-indigo-400 font-bold px-1">
-          <span>👆 Desliza horizontalmente o toca para editar</span>
-          <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
-            {mobileQuadrant === 'ALL' ? 'Vista Completa' : mobileQuadrant}
-          </span>
-        </div>
-
         {isAdult ? (
           <>
             {/* Upper Arch */}
             {showUpper && (
-              <div>
-                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2 flex items-center justify-center gap-2">
+              <div className="space-y-2">
+                <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2">
                   <span>Arcada Superior (Maxilar) — 16 Dientes (18 a 28)</span>
                 </div>
-                <div className="overflow-x-auto touch-pan-x pb-2">
-                  <div className="flex items-center justify-center gap-1 min-w-[580px] md:min-w-0 mx-auto">
-                    {/* Cuadrante 1 (18-11) */}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
-                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
-                        {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+
+                {/* Desktop: 16 in single row / Mobile: Quadrant split */}
+                <div className="hidden md:flex items-center justify-center gap-1 mx-auto">
+                  {/* Cuadrante 1 (18-11) */}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
+                    <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                      {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
+                    </div>
+                  )}
+                  {/* Cuadrante 2 (21-28) */}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
+                    <div className="flex items-center justify-start gap-1 pl-2">
+                      {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile: 2 Quadrant rows (8 teeth each) */}
+                <div className="flex md:hidden flex-col gap-2.5">
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
+                        Q1 • Superior Derecho (18 - 11)
+                      </span>
+                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                        {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, false, true))}
                       </div>
-                    )}
-                    {/* Cuadrante 2 (21-28) */}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
-                      <div className="flex items-center justify-start gap-1 pl-2">
-                        {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
+                    </div>
+                  )}
+
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
+                        Q2 • Superior Izquierdo (21 - 28)
+                      </span>
+                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                        {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, false, true))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {showUpper && showLower && (
-              <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-2" />
+              <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 my-3" />
             )}
 
             {/* Lower Arch */}
             {showLower && (
-              <div>
-                <div className="overflow-x-auto touch-pan-x pb-2">
-                  <div className="flex items-center justify-center gap-1 min-w-[580px] md:min-w-0 mx-auto">
-                    {/* Cuadrante 4 (48-41) */}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
-                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
-                        {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                    {/* Cuadrante 3 (31-38) */}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
-                      <div className="flex items-center justify-start gap-1 pl-2">
-                        {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                  </div>
+              <div className="space-y-2">
+                {/* Desktop: 16 in single row */}
+                <div className="hidden md:flex items-center justify-center gap-1 mx-auto">
+                  {/* Cuadrante 4 (48-41) */}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
+                    <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                      {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge))}
+                    </div>
+                  )}
+                  {/* Cuadrante 3 (31-38) */}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
+                    <div className="flex items-center justify-start gap-1 pl-2">
+                      {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Mobile: 2 Quadrant rows (8 teeth each) */}
+                <div className="flex md:hidden flex-col gap-2.5">
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
+                        Q4 • Inferior Derecho (48 - 41)
+                      </span>
+                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                        {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, false, true))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
+                        Q3 • Inferior Izquierdo (31 - 38)
+                      </span>
+                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                        {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, false, true))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2 flex items-center justify-center gap-2">
                   <span>Arcada Inferior (Mandíbula) — 16 Dientes (48 a 38)</span>
                 </div>
@@ -413,47 +455,43 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
           <>
             {/* Child Upper */}
             {showUpper && (
-              <div>
+              <div className="space-y-2">
                 <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
                   Dentición Infantil Superior — 10 Dientes (55 a 65)
                 </div>
-                <div className="overflow-x-auto touch-pan-x pb-2">
-                  <div className="flex items-center justify-center gap-1 min-w-[420px] md:min-w-0 mx-auto">
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
-                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
-                        {CHILD_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
-                      <div className="flex items-center justify-start gap-1 pl-2">
-                        {CHILD_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
+                    <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                      {CHILD_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, true))}
+                    </div>
+                  )}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
+                    <div className="flex items-center justify-start gap-1 pl-2">
+                      {CHILD_UPPER_LEFT.map((n) => renderToothSVG(n, isLarge, true))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {showUpper && showLower && (
-              <div className="w-full border-t border-dashed border-slate-300 dark:border-slate-700 my-2" />
+              <div className="w-full border-t-2 border-dashed border-slate-200 dark:border-slate-700 my-3" />
             )}
 
             {/* Child Lower */}
             {showLower && (
-              <div>
-                <div className="overflow-x-auto touch-pan-x pb-2">
-                  <div className="flex items-center justify-center gap-1 min-w-[420px] md:min-w-0 mx-auto">
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
-                      <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
-                        {CHILD_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                    {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
-                      <div className="flex items-center justify-start gap-1 pl-2">
-                        {CHILD_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge, mobileQuadrant !== 'ALL'))}
-                      </div>
-                    )}
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
+                    <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
+                      {CHILD_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, true))}
+                    </div>
+                  )}
+                  {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
+                    <div className="flex items-center justify-start gap-1 pl-2">
+                      {CHILD_LOWER_LEFT.map((n) => renderToothSVG(n, isLarge, true))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2">
                   Dentición Infantil Inferior — 10 Dientes (85 a 75)
