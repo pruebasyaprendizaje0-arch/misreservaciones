@@ -70,9 +70,7 @@ const AVAILABLE_TAGS = [
 
 export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FREE' }: Props) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    initialCustomers.length > 0 ? initialCustomers[0].id : null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Filters & Search
   const [search, setSearch] = useState('');
@@ -783,17 +781,25 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
         </div>
       </div>
 
-      {/* Main CRM Grid Layout */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Left Panel: Filters & Customer Directory */}
-        <div className={`md:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[78vh] ${selectedCustomer ? 'hidden md:flex' : 'flex'}`}>
-          {/* Action Header */}
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-            <div className="flex gap-2">
+      {/* Main CRM Full-Width Directory */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col space-y-4 p-4 sm:p-6">
+        {/* Action Header & Search Toolbar */}
+        <div className="space-y-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span>📋</span> Directorio de {term.customers}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Toca o haz clic en cualquier {term.customer.toLowerCase()} para abrir su ficha completa, historia clínica y odontograma.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 text-xs transition shadow-sm"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2 px-3.5 text-xs transition shadow-sm active:scale-95"
               >
                 <span>👤+</span> Registrar {term.customer}
               </button>
@@ -806,7 +812,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         '🔒 La importación masiva de contactos a Excel / CSV está disponible únicamente en el Plan PRO ($10/m) y Plan BUSINESS ($15/m). ¡Actualiza tu suscripción en el panel principal!'
                       )
                     }
-                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
+                    className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
                     title="Importar contactos (PRO)"
                   >
                     🔒 Importar
@@ -818,7 +824,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         '🔒 La exportación a Excel / CSV está disponible únicamente en el Plan PRO ($10/m) y Plan BUSINESS ($15/m). ¡Actualiza tu suscripción en el panel principal!'
                       )
                     }
-                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
+                    className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition cursor-pointer"
                     title="Exportar a CSV (PRO)"
                   >
                     🔒 Exportar
@@ -834,7 +840,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                       setImportError(null);
                       setShowImportModal(true);
                     }}
-                    className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                     title="Importar contactos desde CSV"
                   >
                     📤 Importar
@@ -842,7 +848,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   <a
                     href={`/api/tenants/${slug}/customers/export`}
                     download
-                    className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                     title="Exportar a CSV"
                   >
                     📥 Exportar
@@ -850,22 +856,25 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 </>
               )}
             </div>
+          </div>
 
-            {/* Search Input */}
-            <input
-              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              type="search"
-              placeholder={`Buscar por nombre, cédula o teléfono...`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          {/* Search & Filters */}
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-3">
+            <div className="sm:col-span-1">
+              <input
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                type="search"
+                placeholder={`Buscar por nombre, cédula o teléfono...`}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-            {/* Filters bar */}
-            <div className="flex gap-2 text-xs">
+            <div>
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
-                className="flex-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-slate-700 dark:text-slate-300 font-medium"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-700 dark:text-slate-300 font-bold text-xs"
               >
                 <option value="ALL">🏷️ Todas las Etiquetas</option>
                 {AVAILABLE_TAGS.map((t) => (
@@ -874,82 +883,97 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   </option>
                 ))}
               </select>
+            </div>
 
+            <div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-slate-700 dark:text-slate-300 font-medium"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-700 dark:text-slate-300 font-bold text-xs"
               >
-                <option value="ALL">📌 Todos</option>
-                <option value="ACTIVE">Activos</option>
-                <option value="INACTIVE">Inactivos</option>
-                <option value="BLOCKED">Lista Negra ⛔</option>
+                <option value="ALL">📌 Todos los Estados</option>
+                <option value="ACTIVE">🟢 Activos</option>
+                <option value="INACTIVE">⚪ Inactivos</option>
+                <option value="BLOCKED">⛔ Lista Negra / Bloqueados</option>
               </select>
             </div>
           </div>
+        </div>
 
-          {/* Directory Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-            {filtered.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500 italic">
-                No se encontraron {term.customers.toLowerCase()} con esos criterios.
-              </div>
-            ) : (
-              filtered.map((c) => {
-                const meta = c.metadata || {};
-                const cTags: string[] = Array.isArray(meta.tags) ? meta.tags : [];
-                const cStatus = meta.status || 'ACTIVE';
-                const ltv = getCustomerLTV(c);
+        {/* Directory Customer Cards Grid */}
+        {filtered.length === 0 ? (
+          <div className="p-12 text-center text-xs sm:text-sm text-slate-400 dark:text-slate-500 italic bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+            No se encontraron {term.customers.toLowerCase()} con esos criterios de búsqueda.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 pt-1">
+            {filtered.map((c) => {
+              const meta = c.metadata || {};
+              const cTags: string[] = Array.isArray(meta.tags) ? meta.tags : [];
+              const cStatus = meta.status || 'ACTIVE';
+              const ltv = getCustomerLTV(c);
 
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedId(c.id)}
-                    className={`w-full text-left p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col gap-1.5 ${
-                      selectedId === c.id
-                        ? 'bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600'
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 font-bold text-xs flex items-center justify-center text-slate-700 dark:text-slate-200 uppercase">
-                          {c.name.substring(0, 2)}
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => setSelectedId(c.id)}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 p-4 shadow-xs hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-600 transition-all cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="space-y-2.5">
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition">
+                          {c.name.substring(0, 2).toUpperCase()}
                         </div>
-                        <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs leading-tight">
-                          {c.name}
-                        </h4>
+                        <div className="min-w-0">
+                          <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                            {c.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {meta.docId ? `🆔 ${meta.docId}` : 'Sin Cédula/DNI'}
+                          </p>
+                        </div>
                       </div>
 
                       {cStatus === 'BLOCKED' ? (
-                        <span className="text-[10px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 px-2 py-0.5 rounded-md shrink-0">
                           ⛔ Bloqueado
                         </span>
                       ) : (
-                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          ${ltv.toFixed(0)} LTV
+                        <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md shrink-0">
+                          ${ltv.toFixed(2)} LTV
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                      <span>
-                        {meta.docId ? `🆔 ${meta.docId} · ` : ''}
-                        {c.phone || c.email || 'Sin contacto'}
-                      </span>
-                      <span className="font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                        {c.reservations.length} {isHostal ? 'est.' : 'res.'}
-                      </span>
+                    {/* Contact details */}
+                    <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1 bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[11px]">Teléfono:</span>
+                        <span className="font-semibold text-[11px]">{c.phone || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[11px]">Email:</span>
+                        <span className="font-semibold text-[11px] truncate max-w-[180px]">{c.email || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[11px]">Atenciones / Citas:</span>
+                        <span className="font-bold text-[11px] text-indigo-600 dark:text-indigo-400">
+                          {c.reservations.length} {isHostal ? 'estadías' : 'consultas'}
+                        </span>
+                      </div>
                     </div>
 
+                    {/* Tags */}
                     {cTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-0.5">
+                      <div className="flex flex-wrap gap-1">
                         {cTags.map((t) => {
                           const conf = AVAILABLE_TAGS.find((at) => at.name === t);
                           return (
                             <span
                               key={t}
-                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                              className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
                                 conf ? conf.color : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300'
                               }`}
                             >
@@ -959,826 +983,864 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         })}
                       </div>
                     )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+                  </div>
 
-        {/* Right Panel: Ficha 360° del Cliente */}
-        <div className={`md:col-span-2 space-y-6 ${!selectedCustomer ? 'hidden md:block' : 'block'}`}>
-          {selectedCustomer ? (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-              {/* Mobile Back Button */}
-              <div className="p-3 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 md:hidden flex items-center justify-between">
+                  {/* Open Fiche Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedId(c.id);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-indigo-600 text-slate-700 hover:text-white dark:bg-slate-800 dark:hover:bg-indigo-600 dark:text-slate-200 dark:hover:text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <span>👁️ Abrir Ficha 360° & Herramientas →</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── VENTANA MODAL COMPLETA DEDICADA PARA EL PACIENTE / CLIENTE ── */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-fade-in">
+          <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col my-auto max-h-[96vh]">
+            {/* Top Modal Navigation Header */}
+            <div className="p-3 sm:p-4 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs hover:bg-slate-50 transition active:scale-95"
                 >
-                  ← Volver a lista de {term.customer.toLowerCase()}s
+                  ← Volver a Lista de {term.customers}
                 </button>
-                <span className="text-[11px] font-bold text-slate-500">
-                  Ficha de {term.customer}
-                </span>
+
+                {customers.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-slate-500">Cambiar:</span>
+                    <select
+                      value={selectedId || ''}
+                      onChange={(e) => setSelectedId(e.target.value)}
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[200px] truncate"
+                    >
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {c.phone ? `(${c.phone})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Header Profile Summary */}
-              <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-extrabold text-lg flex items-center justify-center shadow-md">
-                      {selectedCustomer.name.substring(0, 2).toUpperCase()}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <span className="text-xs font-bold text-slate-500 hidden md:inline">
+                  Ficha 360° de {term.customer}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold text-sm hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center transition"
+                  title="Cerrar ventana"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Profile Summary Header */}
+            <div className="p-3.5 sm:p-5 md:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-600 text-white font-extrabold text-lg sm:text-xl flex items-center justify-center shadow-md shrink-0">
+                    {selectedCustomer.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-100 truncate">
+                        {selectedCustomer.name}
+                      </h3>
+                      {status === 'BLOCKED' && (
+                        <span className="text-xs font-extrabold bg-rose-500 text-white px-2 py-0.5 rounded shadow-xs">
+                          ⛔ Lista Negra
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                      <span>🆔 {docId || 'Sin Cédula/DNI'}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span>📞 {phone || 'Sin Teléfono'}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span>✉️ {email || 'Sin Email'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direct Action Buttons: WhatsApp, Mail, Save */}
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto pt-1 sm:pt-0">
+                  {phone && (
+                    <a
+                      href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `Hola ${selectedCustomer.name}, te saludamos de parte de nuestro negocio.`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs"
+                      title="Enviar WhatsApp"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+
+                  {email && (
+                    <a
+                      href={`mailto:${email}`}
+                      className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                    >
+                      ✉️ Email
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition shadow-xs disabled:opacity-50"
+                  >
+                    {saving ? 'Guardando...' : '💾 Guardar Ficha'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Notifications & Feedback */}
+              {saveSuccess && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5 animate-fadeIn">
+                  ✅ Cambios guardados correctamente en la ficha del {term.customer.toLowerCase()}.
+                </div>
+              )}
+              {error && (
+                <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold animate-fadeIn">
+                  ⚠ {error}
+                </div>
+              )}
+
+              {/* Tabs Selector Bar */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 sm:gap-2 pt-1 text-xs font-bold overflow-x-auto custom-scrollbar pb-1 -mx-1 px-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('general')}
+                  className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
+                    activeTab === 'general'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  👤 Contacto y Datos Generales
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('industry')}
+                  className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
+                    activeTab === 'industry'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  {isHostal
+                    ? '🏨 Registro de Alojamiento'
+                    : isMedico
+                    ? '🏥 Historia Clínica & Odontograma'
+                    : isMasaje
+                    ? '💆 Ficha de Spa/Masaje'
+                    : '💇 Ficha de Servicio & Color'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('timeline')}
+                  className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                    activeTab === 'timeline'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  <span>⏱️ Bitácora y Notas</span>
+                  {interactionLogs.length > 0 && (
+                    <span className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full px-1.5 py-0.2 text-[10px]">
+                      {interactionLogs.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('history')}
+                  className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                    activeTab === 'history'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  <span>📅 Historial de {term.bookings}</span>
+                  <span className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full px-1.5 py-0.2 text-[10px]">
+                    {selectedCustomer.reservations.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Tab Content Body (100% Full Width) */}
+            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto max-h-[calc(96vh-220px)]">
+              {/* TAB 1: GENERAL & CONTACT */}
+              {activeTab === 'general' && (
+                <form onSubmit={handleSave} className="space-y-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Nombre completo *
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Teléfono / WhatsApp
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Ej. +593 99 123 4567"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Correo electrónico
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="cliente@ejemplo.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Cédula / Pasaporte / DNI
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={docId}
+                        onChange={(e) => setDocId(e.target.value)}
+                        placeholder="Ej. 0912345678"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Estado en CRM
+                      </label>
+                      <select
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                      >
+                        <option value="ACTIVE">🟢 Activo / Normal</option>
+                        <option value="INACTIVE">⚪ Inactivo</option>
+                        <option value="BLOCKED">⛔ Lista Negra / Bloqueado</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Fecha de Nacimiento / Cumpleaños
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={birthday}
+                        onChange={(e) => setBirthday(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Dirección de Domicilio
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Calle Principal #123..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Ciudad / País
+                      </label>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Quito, Ecuador"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tag Manager */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      🏷️ Etiquetas de Clasificación
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {AVAILABLE_TAGS.map((t) => {
+                        const isSelected = tags.includes(t.name);
+                        return (
+                          <button
+                            key={t.name}
+                            type="button"
+                            onClick={() => toggleTag(t.name)}
+                            className={`text-xs font-bold px-3 py-1 rounded-full border transition ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 hover:border-indigo-400'
+                            }`}
+                          >
+                            {isSelected ? `✓ ${t.name}` : `+ ${t.name}`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Special Notes */}
+                  <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Observaciones especiales y preferencias de atención
+                    </label>
+                    <textarea
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium min-h-[90px]"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Ej. Solicitó factura corporativa a nombre de Empresa S.A., prefiere atención por las mañanas..."
+                    />
+                  </div>
+
+                  {/* Danger zone delete */}
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    {deleteConfirm ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-red-500 font-bold">¿Eliminar permanentemente?</span>
+                        <button
+                          type="button"
+                          onClick={handleDeleteCustomer}
+                          className="px-3 py-1 rounded bg-red-600 text-white text-xs font-bold hover:bg-red-700"
+                        >
+                          Sí, Eliminar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm(false)}
+                          className="px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs font-semibold"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(true)}
+                        className="text-xs text-red-500 hover:text-red-400 font-bold hover:underline"
+                      >
+                        🗑️ Eliminar Ficha del {term.customer}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 2: INDUSTRY SPECIFIC FICHA */}
+              {activeTab === 'industry' && (
+                <form onSubmit={handleSave} className="space-y-6">
+                  {/* HOSTAL Specific Ficha */}
+                  {isHostal && (
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-sky-500 uppercase tracking-wider">
+                        🏨 Ficha de Alojamiento y Registro de Registro de Huéspedes
+                      </h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Nacionalidad / País de Origen
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={nationality}
+                            onChange={(e) => setNationality(e.target.value)}
+                            placeholder="Ej. Ecuador / Guayaquil, Argentina..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Contacto de Emergencia
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={emergencyContact}
+                            onChange={(e) => setEmergencyContact(e.target.value)}
+                            placeholder="Ej. María Pérez (Familiar) +593 99..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Preferencias de Habitación
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={roomPreferences}
+                            onChange={(e) => setRoomPreferences(e.target.value)}
+                            placeholder="Ej. Piso alto, silenciosa, cama matrimonial..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Placa Vehicular / Transporte
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={vehiclePlate}
+                            onChange={(e) => setVehiclePlate(e.target.value)}
+                            placeholder="Ej. GBA-1234"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MEDICO & ODONTOLOGIA Specific Ficha */}
+                  {isMedico && (
+                    <div className="space-y-6">
+                      {/* Sub-tab navigation bar for Medical & Dental */}
+                      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1.5 overflow-x-auto custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => setMedicalSubTab('clinical')}
+                          className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
+                            medicalSubTab === 'clinical'
+                              ? 'border-rose-600 text-rose-600 dark:text-rose-400'
+                              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          <span>📋</span> Historia Clínica & Consultas (SOAP)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMedicalSubTab('odontogram')}
+                          className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
+                            medicalSubTab === 'odontogram'
+                              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          <span>🦷</span> Odontograma Interactivo (FDI)
+                        </button>
+                      </div>
+
+                      {/* Sub-tab 1: Clinical History & SOAP */}
+                      {medicalSubTab === 'clinical' && (
+                        <ClinicalHistory
+                          allergies={allergies}
+                          setAllergies={setAllergies}
+                          bloodType={bloodType}
+                          setBloodType={setBloodType}
+                          bloodPressure={bloodPressure}
+                          setBloodPressure={setBloodPressure}
+                          currentMedications={currentMedications}
+                          setCurrentMedications={setCurrentMedications}
+                          antecedents={antecedents}
+                          setAntecedents={setAntecedents}
+                          diagnosis={diagnosis}
+                          setDiagnosis={setDiagnosis}
+                          consultations={clinicalConsultations}
+                          onAddConsultation={(rec) => setClinicalConsultations((prev) => [rec, ...prev])}
+                        />
+                      )}
+
+                      {/* Sub-tab 2: Odontogram */}
+                      {medicalSubTab === 'odontogram' && (
+                        <Odontogram
+                          initialData={odontogramaData}
+                          onChange={(teeth) => setOdontogramaData(teeth)}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* MASAJE Specific Ficha */}
+                  {isMasaje && (
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                        💆 Ficha de Bienestar & Preferencias de Spa
+                      </h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Presión de Masaje Preferida
+                          </label>
+                          <select
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={preferredPressure}
+                            onChange={(e) => setPreferredPressure(e.target.value)}
+                          >
+                            <option value="Suave">Suave / Relajante</option>
+                            <option value="Media">Media / Moderada</option>
+                            <option value="Fuerte">Fuerte / Tejido Profundo (Deep Tissue)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Alergias a Aceites o Esencias
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={oilAllergies}
+                            onChange={(e) => setOilAllergies(e.target.value)}
+                            placeholder="Ej. Lavanda, almendras..."
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                          Zonas de Mayor Dolor o Tensión Muscular
+                        </label>
+                        <textarea
+                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[70px]"
+                          value={painAreas}
+                          onChange={(e) => setPainAreas(e.target.value)}
+                          placeholder="Ej. Cuello, hombros, zona lumbar..."
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PELUQUERIA Specific Ficha */}
+                  {isPeluqueria && (
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider">
+                        💇 Ficha de Estética y Fórmulas de Cabello
+                      </h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Tipo de Cabello / Piel
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={hairType}
+                            onChange={(e) => setHairType(e.target.value)}
+                            placeholder="Ej. Crespo, fino, tinturado, cuero cabelludo graso..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Estilista Habitual Preferido
+                          </label>
+                          <input
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                            value={preferredStylist}
+                            onChange={(e) => setPreferredStylist(e.target.value)}
+                            placeholder="Ej. Ana María"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                          Fórmula de Tinte / Tratamientos Aplicados
+                        </label>
+                        <textarea
+                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[70px]"
+                          value={colorFormula}
+                          onChange={(e) => setColorFormula(e.target.value)}
+                          placeholder="Ej. Tinte 7.1 + 20 vol, matizador ceniza..."
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {!isHostal && !isMedico && !isMasaje && !isPeluqueria && (
+                    <div className="p-6 text-center text-xs text-slate-400 italic">
+                      Esta industria utiliza la ficha de datos generales y observaciones.
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow"
+                    >
+                      {saving ? 'Guardando...' : '💾 Guardar Ficha Específica'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 3: TIMELINE & INTERACTION LOGS */}
+              {activeTab === 'timeline' && (
+                <div className="space-y-6">
+                  {/* Add Interaction Log Form */}
+                  <form onSubmit={handleAddInteractionNote} className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700 space-y-3">
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <span>✍️</span> Registrar Nueva Nota / Interacción
+                    </h4>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-semibold"
+                        value={newLogType}
+                        onChange={(e) => setNewLogType(e.target.value as any)}
+                      >
+                        <option value="note">📝 Nota Interna</option>
+                        <option value="call">📞 Llamada</option>
+                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="complaint">⚠️ Incidencia / Queja</option>
+                      </select>
+                      <input
+                        type="text"
+                        required
+                        className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
+                        placeholder="Escribe el detalle de la interacción..."
+                        value={newLogNote}
+                        onChange={(e) => setNewLogNote(e.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        disabled={addingLog || !newLogNote.trim()}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition disabled:opacity-50 shadow-xs"
+                      >
+                        {addingLog ? 'Guardando...' : 'Añadir'}
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Timeline Feed */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Historial Cronológico de Interacciones
+                    </h4>
+                    {interactionLogs.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic text-center py-6">
+                        No hay interacciones registradas aún. Registra una con el formulario superior.
+                      </p>
+                    ) : (
+                      <div className="space-y-3 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                        {interactionLogs.map((log) => (
+                          <div key={log.id} className="relative flex items-start gap-3 pl-8">
+                            <div className="absolute left-1.5 top-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
+                              {log.type === 'call'
+                                ? '📞'
+                                : log.type === 'whatsapp'
+                                ? '💬'
+                                : log.type === 'complaint'
+                                ? '⚠️'
+                                : '📝'}
+                            </div>
+
+                            <div className="flex-1 bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm text-xs space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span className="font-bold text-slate-700 dark:text-slate-300">
+                                  {log.author}
+                                </span>
+                                <span>
+                                  {new Date(log.date).toLocaleString('es-EC', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short',
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-slate-800 dark:text-slate-200">{log.note}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: RESERVATION & STATISTICAL HISTORY */}
+              {activeTab === 'history' && (
+                <div className="space-y-6">
+                  {/* Financial Summary Card for this customer */}
+                  <div className="bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total {term.bookings}</p>
+                      <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                        {selectedCustomer.reservations.length}
+                      </p>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                          {selectedCustomer.name}
-                        </h3>
-                        {status === 'BLOCKED' && (
-                          <span className="text-xs font-extrabold bg-rose-500 text-white px-2 py-0.5 rounded shadow-sm">
-                            ⛔ Lista Negra
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span>🆔 {docId || 'Sin Cédula/DNI'}</span>
-                        <span>•</span>
-                        <span>📞 {phone || 'Sin Teléfono'}</span>
-                        <span>•</span>
-                        <span>✉️ {email || 'Sin Email'}</span>
+                      <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Completadas</p>
+                      <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                        {
+                          selectedCustomer.reservations.filter(
+                            (r) => r.status === 'COMPLETED' || r.status === 'CONFIRMED'
+                          ).length
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Gastado</p>
+                      <p className="text-base sm:text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
+                        ${getCustomerLTV(selectedCustomer).toFixed(2)}
                       </p>
                     </div>
                   </div>
 
-                  {/* Direct Action Buttons: WhatsApp, Mail, Save */}
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
-                    {phone && (
+                  {/* Reservations List */}
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                        📅 Listado de {term.bookings} Realizadas
+                      </h4>
                       <a
-                        href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                          `Hola ${selectedCustomer.name}, te saludamos de parte de nuestro negocio.`
-                        )}`}
+                        href={`/${slug}/reservar`}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs"
-                        title="Enviar WhatsApp"
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                       >
-                        💬 WhatsApp
+                        ➕ Nueva Reserva para {selectedCustomer.name} →
                       </a>
-                    )}
-
-                    {email && (
-                      <a
-                        href={`mailto:${email}`}
-                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                      >
-                        ✉️ Email
-                      </a>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-4 py-2 sm:py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
-                    >
-                      {saving ? 'Guardando...' : '💾 Guardar Ficha'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Notifications & Feedback */}
-                {saveSuccess && (
-                  <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1">
-                    ✅ Cambios guardados correctamente en la ficha del {term.customer.toLowerCase()}.
-                  </div>
-                )}
-                {error && (
-                  <div className="p-2 rounded bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold">
-                    ⚠ {error}
-                  </div>
-                )}
-
-                {/* Tabs Selector */}
-                <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 sm:gap-2 pt-2 text-xs font-bold overflow-x-auto custom-scrollbar pb-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('general')}
-                    className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
-                      activeTab === 'general'
-                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                    }`}
-                  >
-                    👤 Contacto y Datos Generales
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('industry')}
-                    className={`pb-2.5 px-3 transition border-b-2 shrink-0 whitespace-nowrap ${
-                      activeTab === 'industry'
-                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                    }`}
-                  >
-                    {isHostal
-                      ? '🏨 Registro de Alojamiento'
-                      : isMedico
-                      ? '🏥 Historia Clínica'
-                      : isMasaje
-                      ? '💆 Preferencias de Spa/Masaje'
-                      : '💇 Preferencias de Servicio'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('timeline')}
-                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
-                      activeTab === 'timeline'
-                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                    }`}
-                  >
-                    <span>⏱️ Bitácora y Notas</span>
-                    {interactionLogs.length > 0 && (
-                      <span className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full px-1.5 py-0.2 text-[10px]">
-                        {interactionLogs.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('history')}
-                    className={`pb-2.5 px-3 transition border-b-2 flex items-center gap-1 shrink-0 whitespace-nowrap ${
-                      activeTab === 'history'
-                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800'
-                    }`}
-                  >
-                    <span>📅 Historial de {term.bookings}</span>
-                    <span className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full px-1.5 py-0.2 text-[10px]">
-                      {selectedCustomer.reservations.length}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab Content Body */}
-              <div className="p-6 space-y-6">
-                {/* TAB 1: GENERAL & CONTACT */}
-                {activeTab === 'general' && (
-                  <form onSubmit={handleSave} className="space-y-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Nombre completo *
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Teléfono / WhatsApp
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="Ej. +593 99 123 4567"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Correo electrónico
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="cliente@ejemplo.com"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Cédula / Pasaporte / DNI
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={docId}
-                          onChange={(e) => setDocId(e.target.value)}
-                          placeholder="Ej. 0912345678"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Estado en CRM
-                        </label>
-                        <select
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold"
-                          value={status}
-                          onChange={(e) => setStatus(e.target.value)}
-                        >
-                          <option value="ACTIVE">🟢 Activo / Normal</option>
-                          <option value="INACTIVE">⚪ Inactivo</option>
-                          <option value="BLOCKED">⛔ Lista Negra / Bloqueado</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Fecha de Nacimiento / Cumpleaños
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={birthday}
-                          onChange={(e) => setBirthday(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Dirección de Domicilio
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          placeholder="Calle Principal #123..."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                          Ciudad / País
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          placeholder="Quito, Ecuador"
-                        />
-                      </div>
                     </div>
 
-                    {/* Tag Manager */}
-                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                        🏷️ Etiquetas de Clasificación
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {AVAILABLE_TAGS.map((t) => {
-                          const isSelected = tags.includes(t.name);
-                          return (
-                            <button
-                              key={t.name}
-                              type="button"
-                              onClick={() => toggleTag(t.name)}
-                              className={`text-xs font-bold px-3 py-1 rounded-full border transition ${
-                                isSelected
-                                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 hover:border-indigo-400'
-                              }`}
-                            >
-                              {isSelected ? `✓ ${t.name}` : `+ ${t.name}`}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Special Notes */}
-                    <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        Observaciones especiales y preferencias de atención
-                      </label>
-                      <textarea
-                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium min-h-[90px]"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Ej. Solicitó factura corporativa a nombre de Empresa S.A., prefiere atención por las mañanas..."
-                      />
-                    </div>
-
-                    {/* Danger zone delete */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                      {deleteConfirm ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-red-500 font-bold">¿Eliminar permanentemente?</span>
-                          <button
-                            type="button"
-                            onClick={handleDeleteCustomer}
-                            className="px-3 py-1 rounded bg-red-600 text-white text-xs font-bold hover:bg-red-700"
-                          >
-                            Sí, Eliminar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirm(false)}
-                            className="px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs font-semibold"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm(true)}
-                          className="text-xs text-red-500 hover:text-red-400 font-bold hover:underline"
-                        >
-                          🗑️ Eliminar Ficha del {term.customer}
-                        </button>
-                      )}
-                    </div>
-                  </form>
-                )}
-
-                {/* TAB 2: INDUSTRY SPECIFIC FICHA */}
-                {activeTab === 'industry' && (
-                  <form onSubmit={handleSave} className="space-y-6">
-                    {/* HOSTAL Specific Ficha */}
-                    {isHostal && (
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-sky-500 uppercase tracking-wider">
-                          🏨 Ficha de Alojamiento y Registro de Registro de Huéspedes
-                        </h4>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Nacionalidad / País de Origen
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={nationality}
-                              onChange={(e) => setNationality(e.target.value)}
-                              placeholder="Ej. Ecuador / Guayaquil, Argentina..."
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Contacto de Emergencia
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={emergencyContact}
-                              onChange={(e) => setEmergencyContact(e.target.value)}
-                              placeholder="Ej. María Pérez (Familiar) +593 99..."
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Preferencias de Habitación
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={roomPreferences}
-                              onChange={(e) => setRoomPreferences(e.target.value)}
-                              placeholder="Ej. Piso alto, silenciosa, cama matrimonial..."
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Placa Vehicular / Transporte
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={vehiclePlate}
-                              onChange={(e) => setVehiclePlate(e.target.value)}
-                              placeholder="Ej. GBA-1234"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* MEDICO & ODONTOLOGIA Specific Ficha */}
-                    {isMedico && (
-                      <div className="space-y-6">
-                        {/* Sub-tab navigation bar for Medical & Dental */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1.5 overflow-x-auto custom-scrollbar">
-                          <button
-                            type="button"
-                            onClick={() => setMedicalSubTab('clinical')}
-                            className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
-                              medicalSubTab === 'clinical'
-                                ? 'border-rose-600 text-rose-600 dark:text-rose-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                          >
-                            <span>📋</span> Historia Clínica & Consultas (SOAP)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMedicalSubTab('odontogram')}
-                            className={`pb-2 px-3 sm:px-4 text-xs font-extrabold transition border-b-2 flex items-center gap-1.5 shrink-0 ${
-                              medicalSubTab === 'odontogram'
-                                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                          >
-                            <span>🦷</span> Odontograma Interactivo (FDI)
-                          </button>
-                        </div>
-
-                        {/* Sub-tab 1: Clinical History & SOAP */}
-                        {medicalSubTab === 'clinical' && (
-                          <ClinicalHistory
-                            allergies={allergies}
-                            setAllergies={setAllergies}
-                            bloodType={bloodType}
-                            setBloodType={setBloodType}
-                            bloodPressure={bloodPressure}
-                            setBloodPressure={setBloodPressure}
-                            currentMedications={currentMedications}
-                            setCurrentMedications={setCurrentMedications}
-                            antecedents={antecedents}
-                            setAntecedents={setAntecedents}
-                            diagnosis={diagnosis}
-                            setDiagnosis={setDiagnosis}
-                            consultations={clinicalConsultations}
-                            onAddConsultation={(rec) => setClinicalConsultations((prev) => [rec, ...prev])}
-                          />
-                        )}
-
-                        {/* Sub-tab 2: Odontogram */}
-                        {medicalSubTab === 'odontogram' && (
-                          <Odontogram
-                            initialData={odontogramaData}
-                            onChange={(teeth) => setOdontogramaData(teeth)}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* MASAJE Specific Ficha */}
-                    {isMasaje && (
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
-                          💆 Ficha de Bienestar & Preferencias de Spa
-                        </h4>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Presión de Masaje Preferida
-                            </label>
-                            <select
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={preferredPressure}
-                              onChange={(e) => setPreferredPressure(e.target.value)}
-                            >
-                              <option value="Suave">Suave / Relajante</option>
-                              <option value="Media">Media / Moderada</option>
-                              <option value="Fuerte">Fuerte / Tejido Profundo (Deep Tissue)</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Alergias a Aceites o Esencias
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={oilAllergies}
-                              onChange={(e) => setOilAllergies(e.target.value)}
-                              placeholder="Ej. Lavanda, almendras..."
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                            Zonas de Mayor Dolor o Tensión Muscular
-                          </label>
-                          <textarea
-                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[70px]"
-                            value={painAreas}
-                            onChange={(e) => setPainAreas(e.target.value)}
-                            placeholder="Ej. Cuello, hombros, zona lumbar..."
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* PELUQUERIA Specific Ficha */}
-                    {isPeluqueria && (
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider">
-                          💇 Ficha de Estética y Fórmulas de Cabello
-                        </h4>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Tipo de Cabello / Piel
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={hairType}
-                              onChange={(e) => setHairType(e.target.value)}
-                              placeholder="Ej. Crespo, fino, tinturado, cuero cabelludo graso..."
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                              Estilista Habitual Preferido
-                            </label>
-                            <input
-                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                              value={preferredStylist}
-                              onChange={(e) => setPreferredStylist(e.target.value)}
-                              placeholder="Ej. Ana María"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                            Fórmula de Tinte / Tratamientos Aplicados
-                          </label>
-                          <textarea
-                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs min-h-[70px]"
-                            value={colorFormula}
-                            onChange={(e) => setColorFormula(e.target.value)}
-                            placeholder="Ej. Tinte 7.1 + 20 vol, matizador ceniza..."
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {!isHostal && !isMedico && !isMasaje && !isPeluqueria && (
-                      <div className="p-6 text-center text-xs text-slate-400 italic">
-                        Esta industria utiliza la ficha de datos generales y observaciones.
-                      </div>
-                    )}
-
-                    <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow"
-                      >
-                        {saving ? 'Guardando...' : '💾 Guardar Ficha Específica'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* TAB 3: TIMELINE & INTERACTION LOGS */}
-                {activeTab === 'timeline' && (
-                  <div className="space-y-6">
-                    {/* Add Interaction Log Form */}
-                    <form onSubmit={handleAddInteractionNote} className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700 space-y-3">
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <span>✍️</span> Registrar Nueva Nota / Interacción
-                      </h4>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <select
-                          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-semibold"
-                          value={newLogType}
-                          onChange={(e) => setNewLogType(e.target.value as any)}
-                        >
-                          <option value="note">📝 Nota Interna</option>
-                          <option value="call">📞 Llamada</option>
-                          <option value="whatsapp">💬 WhatsApp</option>
-                          <option value="complaint">⚠️ Incidencia / Queja</option>
-                        </select>
-                        <input
-                          type="text"
-                          required
-                          className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
-                          placeholder="Escribe el detalle de la interacción..."
-                          value={newLogNote}
-                          onChange={(e) => setNewLogNote(e.target.value)}
-                        />
-                        <button
-                          type="submit"
-                          disabled={addingLog || !newLogNote.trim()}
-                          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition disabled:opacity-50 shadow-xs"
-                        >
-                          {addingLog ? 'Guardando...' : 'Añadir'}
-                        </button>
-                      </div>
-                    </form>
-
-                    {/* Timeline Feed */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Historial Cronológico de Interacciones
-                      </h4>
-                      {interactionLogs.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic text-center py-6">
-                          No hay interacciones registradas aún. Registra una con el formulario superior.
-                        </p>
-                      ) : (
-                        <div className="space-y-3 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                          {interactionLogs.map((log) => (
-                            <div key={log.id} className="relative flex items-start gap-3 pl-8">
-                              <div className="absolute left-1.5 top-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
-                                {log.type === 'call'
-                                  ? '📞'
-                                  : log.type === 'whatsapp'
-                                  ? '💬'
-                                  : log.type === 'complaint'
-                                  ? '⚠️'
-                                  : '📝'}
-                              </div>
-
-                              <div className="flex-1 bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 shadow-sm text-xs space-y-1">
-                                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                                    {log.author}
-                                  </span>
-                                  <span>
-                                    {new Date(log.date).toLocaleString('es-EC', {
-                                      dateStyle: 'short',
-                                      timeStyle: 'short',
-                                    })}
+                    {selectedCustomer.reservations.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic text-center py-6">
+                        Este {term.customer.toLowerCase()} no registra {term.bookings.toLowerCase()} realizadas.
+                      </p>
+                    ) : (
+                      <>
+                        {/* Mobile Cards for Reservations */}
+                        <div className="space-y-2.5 sm:hidden">
+                          {selectedCustomer.reservations.map((r) => {
+                            const priceUSD = (r.service?.priceCents ?? 0) / 100;
+                            return (
+                              <div
+                                key={r.id}
+                                className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <h5 className="font-extrabold text-slate-900 dark:text-slate-100">{r.service.name}</h5>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                      📅 {new Date(r.startsAt).toLocaleString('es-EC', {
+                                        dateStyle: 'short',
+                                        timeStyle: 'short',
+                                      })}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold shrink-0 ${
+                                      r.status === 'CONFIRMED'
+                                        ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                        : r.status === 'COMPLETED'
+                                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                        : r.status === 'PENDING'
+                                        ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                                        : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                                    }`}
+                                  >
+                                    {r.status}
                                   </span>
                                 </div>
-                                <p className="text-slate-800 dark:text-slate-200">{log.note}</p>
+                                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                                  <span className="text-slate-500">
+                                    👤 {r.staff?.name ? `${term.staff}: ${r.staff.name}` : 'Sin asignar'}
+                                  </span>
+                                  <span className="font-black text-slate-900 dark:text-slate-100">
+                                    ${priceUSD.toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {/* TAB 4: RESERVATION & STATISTICAL HISTORY */}
-                {activeTab === 'history' && (
-                  <div className="space-y-6">
-                    {/* Financial Summary Card for this customer */}
-                    <div className="bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                      <div>
-                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total {term.bookings}</p>
-                        <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                          {selectedCustomer.reservations.length}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Completadas</p>
-                        <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                          {
-                            selectedCustomer.reservations.filter(
-                              (r) => r.status === 'COMPLETED' || r.status === 'CONFIRMED'
-                            ).length
-                          }
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Gastado</p>
-                        <p className="text-base sm:text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
-                          ${getCustomerLTV(selectedCustomer).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Reservations List */}
-                    <div className="space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                          📅 Listado de {term.bookings} Realizadas
-                        </h4>
-                        <a
-                          href={`/${slug}/reservar`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-                        >
-                          ➕ Nueva Reserva para {selectedCustomer.name} →
-                        </a>
-                      </div>
-
-                      {selectedCustomer.reservations.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic text-center py-6">
-                          Este {term.customer.toLowerCase()} no registra {term.bookings.toLowerCase()} realizadas.
-                        </p>
-                      ) : (
-                        <>
-                          {/* Mobile Cards for Reservations */}
-                          <div className="space-y-2.5 sm:hidden">
-                            {selectedCustomer.reservations.map((r) => {
-                              const priceUSD = (r.service?.priceCents ?? 0) / 100;
-                              return (
-                                <div
-                                  key={r.id}
-                                  className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                      <h5 className="font-extrabold text-slate-900 dark:text-slate-100">{r.service.name}</h5>
-                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                        📅 {new Date(r.startsAt).toLocaleString('es-EC', {
-                                          dateStyle: 'short',
-                                          timeStyle: 'short',
-                                        })}
-                                      </p>
-                                    </div>
-                                    <span
-                                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold shrink-0 ${
-                                        r.status === 'CONFIRMED'
-                                          ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-                                          : r.status === 'COMPLETED'
-                                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                                          : r.status === 'PENDING'
-                                          ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                                          : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
-                                      }`}
-                                    >
-                                      {r.status}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                                    <span className="text-slate-500">
-                                      👤 {r.staff?.name ? `${term.staff}: ${r.staff.name}` : 'Sin asignar'}
-                                    </span>
-                                    <span className="font-black text-slate-900 dark:text-slate-100">
+                        {/* Desktop Table for Reservations */}
+                        <div className="hidden sm:block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase tracking-wider">
+                              <tr>
+                                <th className="px-4 py-2.5">Fecha</th>
+                                <th className="px-4 py-2.5">Servicio</th>
+                                <th className="px-4 py-2.5">{term.staff}</th>
+                                <th className="px-4 py-2.5">Precio</th>
+                                <th className="px-4 py-2.5">Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                              {selectedCustomer.reservations.map((r) => {
+                                const priceUSD = (r.service?.priceCents ?? 0) / 100;
+                                return (
+                                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                    <td className="px-4 py-3 font-medium">
+                                      {new Date(r.startsAt).toLocaleString('es-EC', {
+                                        dateStyle: 'short',
+                                        timeStyle: 'short',
+                                      })}
+                                    </td>
+                                    <td className="px-4 py-3 font-bold">{r.service.name}</td>
+                                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
+                                      {r.staff?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
                                       ${priceUSD.toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Desktop Table for Reservations */}
-                          <div className="hidden sm:block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                            <table className="w-full text-xs text-left">
-                              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase tracking-wider">
-                                <tr>
-                                  <th className="px-4 py-2.5">Fecha</th>
-                                  <th className="px-4 py-2.5">Servicio</th>
-                                  <th className="px-4 py-2.5">{term.staff}</th>
-                                  <th className="px-4 py-2.5">Precio</th>
-                                  <th className="px-4 py-2.5">Estado</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                                {selectedCustomer.reservations.map((r) => {
-                                  const priceUSD = (r.service?.priceCents ?? 0) / 100;
-                                  return (
-                                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                                      <td className="px-4 py-3 font-medium">
-                                        {new Date(r.startsAt).toLocaleString('es-EC', {
-                                          dateStyle: 'short',
-                                          timeStyle: 'short',
-                                        })}
-                                      </td>
-                                      <td className="px-4 py-3 font-bold">{r.service.name}</td>
-                                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                                        {r.staff?.name ?? '—'}
-                                      </td>
-                                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
-                                        ${priceUSD.toFixed(2)}
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                            r.status === 'CONFIRMED'
-                                              ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-                                              : r.status === 'COMPLETED'
-                                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                                              : r.status === 'PENDING'
-                                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                                              : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
-                                          }`}
-                                        >
-                                          {r.status}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                          r.status === 'CONFIRMED'
+                                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                            : r.status === 'COMPLETED'
+                                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                            : r.status === 'PENDING'
+                                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                                            : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                                        }`}
+                                      >
+                                        {r.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center text-sm text-slate-400 dark:text-slate-500 italic">
-              Selecciona un {term.customer.toLowerCase()} del panel izquierdo para ver su ficha 360° o crea uno nuevo con el botón superior.
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modal para Registrar Nuevo Huésped / Cliente */}
       {showCreateModal && (

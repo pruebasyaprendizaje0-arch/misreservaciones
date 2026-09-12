@@ -122,19 +122,19 @@ export function ClinicalHistory({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Antecedentes Médicos de Ficha General */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-5 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-5 shadow-xs">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>📋</span> Ficha de Antecedentes y Perfil Médico Basal
+          <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <span>📋</span> Ficha de Antecedentes y Perfil Basal
           </h3>
-          <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/80 px-3 py-1 rounded-xl border border-rose-200/50 dark:border-rose-900">
-            🏥 Categoría Salud
+          <span className="text-[10px] sm:text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-rose-200/50 dark:border-rose-900">
+            🏥 Salud
           </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
               ⚠️ Alergias (Medicamentos/Alimentos)
@@ -188,7 +188,7 @@ export function ClinicalHistory({
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
               📜 Antecedentes Personales y Cirugías
@@ -218,14 +218,14 @@ export function ClinicalHistory({
       </div>
 
       {/* Consultas Médicas & Evolución Timeline (SOAP Notes) */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4">
           <div>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>🩺</span> Historial de Consultas Médicas y Notas de Evolución (SOAP)
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span>🩺</span> Consultas Médicas & SOAP
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Registro cronológico de atenciones médicas, signos vitales, diagnósticos y recetas.
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Registro cronológico de atenciones médicas, signos vitales y recetas.
             </p>
           </div>
 
@@ -233,9 +233,9 @@ export function ClinicalHistory({
             <button
               type="button"
               onClick={() => setShowConsultationModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition shadow-sm"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition shadow-sm w-full sm:w-auto"
             >
-              <span>➕ Nueva Consulta Médica</span>
+              <span>➕ Nueva Consulta</span>
             </button>
           )}
         </div>
@@ -368,16 +368,16 @@ export function ClinicalHistory({
 
       {/* Modal Nueva Consulta Médica (SOAP) */}
       {showConsultationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 my-auto max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>🩺</span> Registrar Nueva Consulta Médica (Evolución SOAP)
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span>🩺</span> Nueva Consulta Médica (SOAP)
               </h3>
               <button
                 type="button"
                 onClick={() => setShowConsultationModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-extrabold text-lg"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white font-extrabold text-sm flex items-center justify-center"
               >
                 ✕
               </button>
