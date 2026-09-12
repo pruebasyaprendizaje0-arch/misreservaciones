@@ -737,46 +737,46 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
         </div>
       )}
       {/* CRM Executive Overview Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 shadow-sm flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
             👥
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total {term.customers}</p>
-            <p className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{stats.totalCustomers}</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">Total {term.customers}</p>
+            <p className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100">{stats.totalCustomers}</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 shadow-sm flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
             ⭐
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{term.customers} VIP</p>
-            <p className="text-xl font-extrabold text-amber-600 dark:text-amber-400">{stats.vipCount}</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">{term.customers} VIP</p>
+            <p className="text-lg sm:text-xl font-extrabold text-amber-600 dark:text-amber-400">{stats.vipCount}</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 shadow-sm flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
             💰
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Ingresos LTV Total</p>
-            <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">Ingresos LTV</p>
+            <p className="text-base sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 truncate">
               ${stats.totalSpentUSD.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xl font-bold">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 shadow-sm flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
             📊
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Gasto Promedio</p>
-            <p className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">Gasto Promedio</p>
+            <p className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 truncate">
               ${stats.avgTicket.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -1013,7 +1013,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                   </div>
 
                   {/* Direct Action Buttons: WhatsApp, Mail, Save */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
                     {phone && (
                       <a
                         href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
@@ -1021,7 +1021,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         )}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs"
                         title="Enviar WhatsApp"
                       >
                         💬 WhatsApp
@@ -1031,7 +1031,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                     {email && (
                       <a
                         href={`mailto:${email}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                       >
                         ✉️ Email
                       </a>
@@ -1041,7 +1041,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                       type="button"
                       onClick={handleSave}
                       disabled={saving}
-                      className="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-4 py-2 sm:py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
                     >
                       {saving ? 'Guardando...' : '💾 Guardar Ficha'}
                     </button>
@@ -1539,13 +1539,13 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 {activeTab === 'timeline' && (
                   <div className="space-y-6">
                     {/* Add Interaction Log Form */}
-                    <form onSubmit={handleAddInteractionNote} className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700 space-y-3">
+                    <form onSubmit={handleAddInteractionNote} className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700 space-y-3">
                       <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <span>✍️</span> Registrar Nueva Nota / Interacción
                       </h4>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <select
-                          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs font-semibold"
+                          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 text-xs font-semibold"
                           value={newLogType}
                           onChange={(e) => setNewLogType(e.target.value as any)}
                         >
@@ -1557,7 +1557,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         <input
                           type="text"
                           required
-                          className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs"
+                          className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs"
                           placeholder="Escribe el detalle de la interacción..."
                           value={newLogNote}
                           onChange={(e) => setNewLogNote(e.target.value)}
@@ -1565,7 +1565,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         <button
                           type="submit"
                           disabled={addingLog || !newLogNote.trim()}
-                          className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition disabled:opacity-50"
+                          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition disabled:opacity-50 shadow-xs"
                         >
                           {addingLog ? 'Guardando...' : 'Añadir'}
                         </button>
@@ -1621,16 +1621,16 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 {activeTab === 'history' && (
                   <div className="space-y-6">
                     {/* Financial Summary Card for this customer */}
-                    <div className="bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-4 grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-4 text-center">
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Total {term.bookings}</p>
-                        <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total {term.bookings}</p>
+                        <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
                           {selectedCustomer.reservations.length}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Completadas</p>
-                        <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Completadas</p>
+                        <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
                           {
                             selectedCustomer.reservations.filter(
                               (r) => r.status === 'COMPLETED' || r.status === 'CONFIRMED'
@@ -1639,16 +1639,16 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Gastado (LTV)</p>
-                        <p className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
+                        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Gastado</p>
+                        <p className="text-base sm:text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
                           ${getCustomerLTV(selectedCustomer).toFixed(2)}
                         </p>
                       </div>
                     </div>
 
-                    {/* Reservations Table */}
+                    {/* Reservations List */}
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">
                           📅 Listado de {term.bookings} Realizadas
                         </h4>
@@ -1667,57 +1667,109 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                           Este {term.customer.toLowerCase()} no registra {term.bookings.toLowerCase()} realizadas.
                         </p>
                       ) : (
-                        <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                          <table className="w-full text-xs text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase tracking-wider">
-                              <tr>
-                                <th className="px-4 py-2.5">Fecha</th>
-                                <th className="px-4 py-2.5">Servicio</th>
-                                <th className="px-4 py-2.5">{term.staff}</th>
-                                <th className="px-4 py-2.5">Precio</th>
-                                <th className="px-4 py-2.5">Estado</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                              {selectedCustomer.reservations.map((r) => {
-                                const priceUSD = (r.service?.priceCents ?? 0) / 100;
-                                return (
-                                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                                    <td className="px-4 py-3 font-medium">
-                                      {new Date(r.startsAt).toLocaleString('es-EC', {
-                                        dateStyle: 'short',
-                                        timeStyle: 'short',
-                                      })}
-                                    </td>
-                                    <td className="px-4 py-3 font-bold">{r.service.name}</td>
-                                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                                      {r.staff?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
+                        <>
+                          {/* Mobile Cards for Reservations */}
+                          <div className="space-y-2.5 sm:hidden">
+                            {selectedCustomer.reservations.map((r) => {
+                              const priceUSD = (r.service?.priceCents ?? 0) / 100;
+                              return (
+                                <div
+                                  key={r.id}
+                                  className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <h5 className="font-extrabold text-slate-900 dark:text-slate-100">{r.service.name}</h5>
+                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                        📅 {new Date(r.startsAt).toLocaleString('es-EC', {
+                                          dateStyle: 'short',
+                                          timeStyle: 'short',
+                                        })}
+                                      </p>
+                                    </div>
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold shrink-0 ${
+                                        r.status === 'CONFIRMED'
+                                          ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                          : r.status === 'COMPLETED'
+                                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                          : r.status === 'PENDING'
+                                          ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                                          : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                                      }`}
+                                    >
+                                      {r.status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                                    <span className="text-slate-500">
+                                      👤 {r.staff?.name ? `${term.staff}: ${r.staff.name}` : 'Sin asignar'}
+                                    </span>
+                                    <span className="font-black text-slate-900 dark:text-slate-100">
                                       ${priceUSD.toFixed(2)}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <span
-                                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                          r.status === 'CONFIRMED'
-                                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-                                            : r.status === 'COMPLETED'
-                                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                                            : r.status === 'PENDING'
-                                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                                            : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
-                                        }`}
-                                      >
-                                        {r.status}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Desktop Table for Reservations */}
+                          <div className="hidden sm:block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+                            <table className="w-full text-xs text-left">
+                              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase tracking-wider">
+                                <tr>
+                                  <th className="px-4 py-2.5">Fecha</th>
+                                  <th className="px-4 py-2.5">Servicio</th>
+                                  <th className="px-4 py-2.5">{term.staff}</th>
+                                  <th className="px-4 py-2.5">Precio</th>
+                                  <th className="px-4 py-2.5">Estado</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                                {selectedCustomer.reservations.map((r) => {
+                                  const priceUSD = (r.service?.priceCents ?? 0) / 100;
+                                  return (
+                                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                      <td className="px-4 py-3 font-medium">
+                                        {new Date(r.startsAt).toLocaleString('es-EC', {
+                                          dateStyle: 'short',
+                                          timeStyle: 'short',
+                                        })}
+                                      </td>
+                                      <td className="px-4 py-3 font-bold">{r.service.name}</td>
+                                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
+                                        {r.staff?.name ?? '—'}
+                                      </td>
+                                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
+                                        ${priceUSD.toFixed(2)}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span
+                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                            r.status === 'CONFIRMED'
+                                              ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                              : r.status === 'COMPLETED'
+                                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                              : r.status === 'PENDING'
+                                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                                              : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                                          }`}
+                                        >
+                                          {r.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       )}
+                    </div>
+                  </div>
+                )}
                     </div>
                   </div>
                 )}
@@ -1733,9 +1785,9 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
 
       {/* Modal para Registrar Nuevo Huésped / Cliente */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-6 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900 p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 text-slate-100 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <span>👤+</span> Registrar Nuevo {term.customer} en CRM
               </h3>
