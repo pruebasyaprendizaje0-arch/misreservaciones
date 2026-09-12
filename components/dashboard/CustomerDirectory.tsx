@@ -1061,7 +1061,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                 )}
 
                 {/* Tabs Selector */}
-                <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 sm:gap-2 pt-2 text-xs font-bold overflow-x-auto no-scrollbar">
+                <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 sm:gap-2 pt-2 text-xs font-bold overflow-x-auto custom-scrollbar pb-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab('general')}
@@ -1367,7 +1367,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                     {isMedico && (
                       <div className="space-y-6">
                         {/* Sub-tab navigation bar for Medical & Dental */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1 overflow-x-auto no-scrollbar">
+                        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 pb-1.5 overflow-x-auto custom-scrollbar">
                           <button
                             type="button"
                             onClick={() => setMedicalSubTab('clinical')}

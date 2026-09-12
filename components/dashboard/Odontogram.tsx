@@ -371,24 +371,26 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                 </div>
 
                 {/* Mobile: 2 Quadrant rows (8 teeth each) */}
-                <div className="flex md:hidden flex-col gap-2.5">
+                <div className="flex md:hidden flex-col gap-3">
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
-                        Q1 • Superior Derecho (18 - 11)
-                      </span>
-                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-indigo-500 uppercase px-1">
+                        <span>Q1 • Superior Derecho (18 - 11)</span>
+                        <span className="text-slate-400 font-normal">↔ Desliza</span>
+                      </div>
+                      <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                         {ADULT_UPPER_RIGHT.map((n) => renderToothSVG(n, false, true))}
                       </div>
                     </div>
                   )}
 
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q2') && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
-                        Q2 • Superior Izquierdo (21 - 28)
-                      </span>
-                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-indigo-500 uppercase px-1">
+                        <span>Q2 • Superior Izquierdo (21 - 28)</span>
+                        <span className="text-slate-400 font-normal">↔ Desliza</span>
+                      </div>
+                      <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                         {ADULT_UPPER_LEFT.map((n) => renderToothSVG(n, false, true))}
                       </div>
                     </div>
@@ -421,24 +423,26 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                 </div>
 
                 {/* Mobile: 2 Quadrant rows (8 teeth each) */}
-                <div className="flex md:hidden flex-col gap-2.5">
+                <div className="flex md:hidden flex-col gap-3">
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
-                        Q4 • Inferior Derecho (48 - 41)
-                      </span>
-                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-indigo-500 uppercase px-1">
+                        <span>Q4 • Inferior Derecho (48 - 41)</span>
+                        <span className="text-slate-400 font-normal">↔ Desliza</span>
+                      </div>
+                      <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                         {ADULT_LOWER_RIGHT.map((n) => renderToothSVG(n, false, true))}
                       </div>
                     </div>
                   )}
 
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q3') && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-[10px] font-extrabold text-indigo-500 uppercase block mb-1 text-center">
-                        Q3 • Inferior Izquierdo (31 - 38)
-                      </span>
-                      <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-indigo-500 uppercase px-1">
+                        <span>Q3 • Inferior Izquierdo (31 - 38)</span>
+                        <span className="text-slate-400 font-normal">↔ Desliza</span>
+                      </div>
+                      <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                         {ADULT_LOWER_LEFT.map((n) => renderToothSVG(n, false, true))}
                       </div>
                     </div>
@@ -459,7 +463,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                 <div className="text-center text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
                   Dentición Infantil Superior — 10 Dientes (55 a 65)
                 </div>
-                <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                <div className="flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'UPPER' || mobileQuadrant === 'Q1') && (
                     <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
                       {CHILD_UPPER_RIGHT.map((n) => renderToothSVG(n, isLarge, true))}
@@ -481,7 +485,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
             {/* Child Lower */}
             {showLower && (
               <div className="space-y-2">
-                <div className="flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                <div className="flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto custom-scrollbar py-2 px-1">
                   {(mobileQuadrant === 'ALL' || mobileQuadrant === 'LOWER' || mobileQuadrant === 'Q4') && (
                     <div className="flex items-center justify-end gap-1 border-r-2 border-indigo-500/40 pr-2">
                       {CHILD_LOWER_RIGHT.map((n) => renderToothSVG(n, isLarge, true))}
@@ -587,7 +591,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
         </div>
 
         {/* Mobile View Filters (Arcadas & Cuadrantes para Celular) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-2 pt-1">
           <span className="text-[11px] font-bold text-slate-500 shrink-0 mr-1">Vista:</span>
           {(
             [
@@ -604,7 +608,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
               key={q.id}
               type="button"
               onClick={() => setMobileQuadrant(q.id)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition border ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 whitespace-nowrap transition border ${
                 mobileQuadrant === q.id
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -640,7 +644,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto custom-scrollbar pb-2">
             {(Object.keys(CONDITION_COLORS) as ToothCondition[]).map((cond) => {
               const info = CONDITION_COLORS[cond];
               const isSel = selectedCondition === cond;
@@ -649,7 +653,7 @@ export function Odontogram({ initialData = [], onChange, readOnly = false }: Odo
                   key={cond}
                   type="button"
                   onClick={() => setSelectedCondition(cond)}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold border transition active:scale-95 ${
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold border shrink-0 whitespace-nowrap transition active:scale-95 ${
                     isSel
                       ? 'ring-2 ring-indigo-500 shadow-sm border-indigo-600 scale-102'
                       : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'

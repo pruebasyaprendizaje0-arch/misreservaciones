@@ -658,7 +658,7 @@ export function BookingFlow({
   return (
     <div className="space-y-6">
       {/* Steps Progress */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 text-xs font-semibold text-slate-500 overflow-x-auto no-scrollbar whitespace-nowrap gap-2 sm:gap-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 text-xs font-semibold text-slate-500 overflow-x-auto custom-scrollbar whitespace-nowrap gap-2 sm:gap-4">
         <span className={step >= 1 ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>
           1. {isHostal ? 'Tarifa / Servicio' : t('selectService')}
         </span>
