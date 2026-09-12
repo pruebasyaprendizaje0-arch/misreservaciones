@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "prisma generate --schema=prisma/schema.control.prisma && prisma generate --schema=prisma/schema.tenant.prisma && next build",
-    "start": "prisma migrate deploy --schema=prisma/schema.control.prisma && (node .next/standalone/server.js || next start -p 3000)",
+    "start": "prisma migrate deploy --schema=prisma/schema.control.prisma && next start -p 3000 -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "prisma:control:generate": "prisma generate --schema=prisma/schema.control.prisma",
