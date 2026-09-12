@@ -974,7 +974,7 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
               <div className="p-3 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 md:hidden flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setSelectedCustomer(null)}
+                  onClick={() => setSelectedId(null)}
                   className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs"
                 >
                   ← Volver a lista de {term.customer.toLowerCase()}s
@@ -1767,9 +1767,6 @@ export function CustomerDirectory({ slug, initialCustomers, industry, plan = 'FR
                           </div>
                         </>
                       )}
-                    </div>
-                  </div>
-                )}
                     </div>
                   </div>
                 )}
