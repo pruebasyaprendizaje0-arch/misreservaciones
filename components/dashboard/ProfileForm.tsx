@@ -322,21 +322,21 @@ export function ProfileForm({ slug, initial, locale }: Props) {
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <span className="text-xl">{isHostal ? '🏊' : '📸'}</span>{' '}
-            {isHostal ? 'Fotos de Áreas Comunes (Piscina, Terraza, Cocina, Recepción) — Máximo 3 fotos' : 'Galería de Fotos del Establecimiento — Máximo 3 fotos'}
+            {isHostal ? 'Fotos de Áreas Comunes (Piscina, Terraza, Cocina, Recepción) — Máximo 4 fotos' : 'Galería de Fotos del Establecimiento — Máximo 4 fotos'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             {isHostal
-              ? 'Sube hasta un máximo de 3 fotos de las instalaciones compartidas que disfrutarán los huéspedes.'
-              : 'Sube hasta un máximo de 3 fotos representativas de tu establecimiento.'}
+              ? 'Sube hasta un máximo de 4 fotos de las instalaciones compartidas que disfrutarán los huéspedes.'
+              : 'Sube hasta un máximo de 4 fotos representativas de tu establecimiento.'}
           </p>
         </div>
 
         <ImageUploader
           multiple
-          maxFiles={3}
+          maxFiles={4}
           value={commonAreaPhotos}
-          onChange={(urls) => setCommonAreaPhotos(urls.slice(0, 3))}
-          placeholder="Agregar fotos (Máximo 3)"
+          onChange={(urls) => setCommonAreaPhotos(urls.slice(0, 4))}
+          placeholder="Agregar fotos (Máximo 4)"
         />
       </section>
 
