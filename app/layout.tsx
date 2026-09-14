@@ -4,13 +4,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   metadataBase: new URL('https://misreservaciones.ubicame.cc'),
   title: {
-    default: 'misreservaciones - Plataforma Multi-Tenant de Reservas del Ecuador',
-    template: '%s | misreservaciones',
+    default: 'reservaciones - Plataforma Multi-Tenant de Reservas del Ecuador',
+    template: '%s | reservaciones',
   },
   description: 'Plataforma multi-tenant de reservaciones para hostales, clínicas, peluquerías y centros de spa en Ecuador.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
       { url: '/icon.png', type: 'image/png' },
       { url: '/favicon.png', type: 'image/png' },
     ],
@@ -18,16 +19,16 @@ export const metadata: Metadata = {
     apple: '/apple-icon.png',
   },
   openGraph: {
-    title: 'misreservaciones',
+    title: 'reservaciones',
     description: 'Plataforma multi-tenant de reservaciones para hostales, clínicas, peluquerías y centros de spa en Ecuador.',
     url: 'https://misreservaciones.ubicame.cc',
-    siteName: 'misreservaciones',
+    siteName: 'reservaciones',
     images: [
       {
         url: '/logo.png',
         width: 1024,
         height: 1024,
-        alt: 'misreservaciones Logo',
+        alt: 'reservaciones Logo',
       },
     ],
     locale: 'es_EC',

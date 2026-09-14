@@ -14,8 +14,8 @@ export async function generateMetadata({
   const isEs = locale === 'es';
 
   const title = isEs
-    ? 'misreservaciones | Sistema de Reservas Online para Hostales y Negocios en Ecuador'
-    : 'misreservaciones | Online Booking System for Hostels and Businesses in Ecuador';
+    ? 'reservaciones | Sistema de Reservas Online para Hostales y Negocios en Ecuador'
+    : 'reservaciones | Online Booking System for Hostels and Businesses in Ecuador';
 
   const description = isEs
     ? 'Plataforma multi-tenant de reservas en línea para hostales, masajes, peluquerías y consultorios médicos en Ecuador. Reserva sin comisiones en Olón, Montañita, Santa Elena, Quito y Guayaquil.'
@@ -50,7 +50,7 @@ export default async function LandingPage() {
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'misreservaciones',
+    name: 'reservaciones',
     url: `https://misreservaciones.com/${locale}`,
     logo: 'https://misreservaciones.com/logo.png',
     description:
@@ -64,7 +64,7 @@ export default async function LandingPage() {
   const webSiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'misreservaciones',
+    name: 'reservaciones',
     url: `https://misreservaciones.com/${locale}`,
     potentialAction: {
       '@type': 'SearchAction',
